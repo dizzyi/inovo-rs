@@ -1,0 +1,16 @@
+[package]
+name = "inovo-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Alan, CHUNG Ho Lun, dizzyi@github, deeralan827@gmail.com"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4.31"
+local-ip-address = "0.5.6"
+nalgebra = "0.32.3"
+net2 = "0.2.39"
+serde_json = "1.0.107"
+websocket = "0.27.0"
+

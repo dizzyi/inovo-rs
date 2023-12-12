@@ -172,8 +172,8 @@ pub enum Pose {
 }
 
 impl Pose {
-    const JOINT: &str = "JOINT";
-    const TRANSFORM: &str = "TRANSFORM";
+    const JOINT: &'static str = "JOINT";
+    const TRANSFORM: &'static str = "TRANSFORM";
 }
 
 impl Iva for Pose {

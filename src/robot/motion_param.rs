@@ -1,11 +1,14 @@
+use std::f64::consts::PI;
+
+use serde::{Deserialize, Serialize};
+
 use crate::context::Context;
 use crate::iva::Iva;
-use std::f64::consts::PI;
 
 use super::IvaRobot;
 
 /// A struct represent the Motion Param of the robot
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MotionParam {
     speed: f64,
     accel: f64,

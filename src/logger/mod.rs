@@ -145,28 +145,34 @@ pub trait Logable {
     /// get logger of the struct
     fn get_logger(&mut self) -> &mut Logger;
 
+    fn log(&mut self, msg: impl Into<String>, log_level: LogLevel) -> Result<(), String> {
+        self.get_logger().log(msg, log_level)
+    }
+
     /// log a message with level `ERROR`
     fn error(&mut self, msg: impl Into<String>) -> Result<(), String> {
-        self.get_logger().error(msg)
+        self.log(msg, LogLevel::Error)
     }
 
     /// log a message with level `WARN`
     fn warn(&mut self, msg: impl Into<String>) -> Result<(), String> {
-        self.get_logger().warn(msg)
+        self.log(msg, LogLevel::Warn)
     }
 
     /// log a message with level `INFO`
     fn info(&mut self, msg: impl Into<String>) -> Result<(), String> {
-        self.get_logger().info(msg)
+        self.log(msg, LogLevel::Info)
     }
 
     /// log a message with level `DEBUG`
     fn debug(&mut self, msg: impl Into<String>) -> Result<(), String> {
-        self.get_logger().debug(msg)
+        self.log(msg, LogLevel::Debug)
     }
 
     /// log a message with level `TRACE`
     fn trace(&mut self, msg: impl Into<String>) -> Result<(), String> {
-        self.get_logger().trace(msg)
+        self.log(msg, LogLevel::Trace)
     }
 }
+
+unsafe impl Send for Logger {}

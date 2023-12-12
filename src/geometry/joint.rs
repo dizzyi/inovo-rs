@@ -1,11 +1,13 @@
 use std::convert::{TryFrom, TryInto};
 use std::ops::{Add, Neg, Sub};
 
+use serde::{Deserialize, Serialize};
+
 use crate::geometry::IntoPose;
 use crate::iva::{Iva, Pose};
 
 /// A structure representing a 6 joint coordinate, in degree
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JointCoord {
     q: [f64; 6],
 }

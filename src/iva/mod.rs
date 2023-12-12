@@ -1,6 +1,8 @@
 use std::fmt::Display;
 use std::vec;
 
+use serde::{Deserialize, Serialize};
+
 use crate::geometry::{JointCoord, Transform};
 use crate::robot::MotionParam;
 
@@ -11,7 +13,7 @@ pub trait Iva {
 }
 
 /// Enum representing different types of instructions.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Instruction {
     /// Execute a robot command immediately.
     Execute(RobotCommand),
@@ -94,7 +96,7 @@ impl Iva for Instruction {
 }
 
 /// Enum representing different types of robot commands.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RobotCommand {
     /// Perform a motion with a specific pose and motion type.
     Motion(MotionType, Pose),
@@ -136,7 +138,7 @@ impl Iva for RobotCommand {
 }
 
 /// Enum representing different types motion
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MotionType {
     Linear,
     LinearRelative,
@@ -163,7 +165,7 @@ impl Iva for MotionType {
 }
 
 /// Enum representing different types of pose with data
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Pose {
     Joint(JointCoord),
     Transform(Transform),
@@ -188,7 +190,7 @@ impl Iva for Pose {
 }
 
 /// Enum representing different types of gripper command
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GripperCommand {
     /// activate the gripper
     Activate,
@@ -221,7 +223,7 @@ impl Iva for GripperCommand {
 }
 
 /// Enum representing different types of digital Input/Output source
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum IOSource {
     Beckhoff,
     Wrist,
@@ -246,7 +248,7 @@ impl Iva for IOSource {
 }
 
 /// Enum representing different types of digital Input/Output
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum IOType {
     Input,
     Output(IOState),
@@ -271,7 +273,7 @@ impl Iva for IOType {
 }
 
 /// Enum representing different types of Digital Input/Output state
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum IOState {
     High,
     Low,
@@ -292,7 +294,7 @@ impl Iva for IOState {
 }
 
 /// Enum representing different types of pose
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PoseType {
     Frame,
     Joint,

@@ -1,5 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
+use serde::{Deserialize, Serialize};
+
 use crate::geometry::IntoPose;
 use crate::iva::*;
 
@@ -15,6 +17,7 @@ use super::MotionParam;
 ///     .then_sleep(10.0)
 ///     .then_sync();
 /// ```
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandSequence {
     seq: Vec<RobotCommand>,
 }

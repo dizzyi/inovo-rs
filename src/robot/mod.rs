@@ -386,3 +386,5 @@ pub trait IvaRobot: InovoRobot {
         self.custom(vec![func.into()])?.res_is_ok()
     }
 }
+
+unsafe impl Send for Robot {}

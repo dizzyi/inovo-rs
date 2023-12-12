@@ -1,13 +1,16 @@
-use crate::geometry::IntoPose;
-use crate::iva::Iva;
-
-use nalgebra::geometry::{Isometry3, UnitQuaternion};
-use nalgebra::Translation3;
 use std::f64::consts::PI;
 use std::ops::{Div, Mul, Neg};
 
+use nalgebra::geometry::{Isometry3, UnitQuaternion};
+use nalgebra::Translation3;
+
+use serde::{Deserialize, Serialize};
+
+use crate::geometry::IntoPose;
+use crate::iva::Iva;
+
 /// A structure representing a 3D Transformation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transform {
     vector: [f64; 3],
     euler: [f64; 3],

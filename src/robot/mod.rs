@@ -147,7 +147,7 @@ pub trait InovoRobot: Sized + Logable + ContextMachine {
         let host = host.into();
         let mut listener = socket::Listener::new(port)?;
 
-        ros_bridge::run_sequence(&host, "iva")?;
+        ros_bridge::RosBridge::new(host.clone(), 1000)?.run_sequence("iva")?;
 
         let stream = listener.accept(Some(host.into()), socket_logger)?;
 

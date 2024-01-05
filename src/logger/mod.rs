@@ -175,4 +175,10 @@ pub trait Logable {
     }
 }
 
+impl Logable for &mut Logger {
+    fn get_logger(&mut self) -> &mut Logger {
+        self
+    }
+}
+
 unsafe impl Send for Logger {}

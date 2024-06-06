@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Alan, CHUNG Ho Lun, dizzyi@github, deeralan827@gmail.com"]
 description = "API for intergrating inovo robot arm."
 license = "MIT"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

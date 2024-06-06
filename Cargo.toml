@@ -8,9 +8,11 @@ authors = ["Alan, CHUNG Ho Lun, dizzyi@github, deeralan827@gmail.com"]
 
 [dependencies]
 chrono = "0.4.31"
-local-ip-address = "0.5.6"
+local-ip-address = "0.6.1"
 nalgebra = "0.32.3"
 net2 = "0.2.39"
 websocket = "0.27.0"
 serde = {version = "1.0.192", features = ["derive"]}
 serde_json = "1.0.108"
+colored = "2.1.0"
+thiserror = "1.0.61"

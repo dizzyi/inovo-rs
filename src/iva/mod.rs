@@ -1,315 +1,249 @@
-use std::fmt::Display;
-use std::vec;
+//! Module for constructing `IVA` message for communicating with robot
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::geometry::{JointCoord, Transform};
 use crate::robot::MotionParam;
 
-/// Trait for generating iva tokens from an instruction.
-pub trait Iva {
-    /// compile the instruction to a vec of String
-    fn tokens(&self) -> Vec<String>;
-}
-
-/// Enum representing different types of instructions.
+/// data structure representing all iva request messages
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "op_code")]
+#[serde(rename_all = "snake_case")]
 pub enum Instruction {
-    /// Execute a robot command immediately.
-    Execute(RobotCommand),
-    /// Enqueue a robot command for later execution.
+    Execute {
+        #[serde(flatten)]
+        robot_command: RobotCommand,
+        enter_context: f64,
+    },
     Enqueue(RobotCommand),
-    /// Dequeue and execute all the enqueued command
-    Dequeue,
-    /// Control the robot's gripper.
+    Dequeue {
+        enter_context: f64,
+    },
+    Pop,
     Gripper(GripperCommand),
-    /// Control digital input/output.
-    Digital(IOSource, u8, IOType),
-    // Get the current pose.
-    Current(PoseType),
-    // Custom instruction with a list of strings.
-    Custom(Vec<String>),
+    #[serde(rename = "io")]
+    IO {
+        target: IOTarget,
+        port: u16,
+        #[serde(flatten)]
+        io_command: IOCommand,
+    },
+    Get(GetTarget),
+    Custom(CustomCommand),
 }
 
 impl Instruction {
-    const EXECUTE: &'static str = "EXECUTE";
-    const ENQUEUE: &'static str = "ENQUEUE";
-    const DEQUEUE: &'static str = "DEQUEUE";
-    const GRIPPER: &'static str = "GRIPPER";
-    const DIGITAL: &'static str = "DIGITAL";
-    const CURRENT: &'static str = "CURRENT";
-    const CUSTOM: &'static str = "CUSTOM";
-}
-
-impl Display for Instruction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.tokens()
-                .iter()
-                .map(|t| format!("{:>10}", t))
-                .collect::<Vec<_>>()
-                .join(",")
-        )
-    }
-}
-
-impl Into<String> for Instruction {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
-
-impl Iva for Instruction {
-    fn tokens(&self) -> Vec<String> {
-        match self {
-            Instruction::Execute(robot_command) => std::iter::once(Instruction::EXECUTE.to_owned())
-                .chain(robot_command.tokens())
-                .collect(),
-            Instruction::Enqueue(robot_command) => std::iter::once(Instruction::ENQUEUE.to_owned())
-                .chain(robot_command.tokens())
-                .collect(),
-            Instruction::Dequeue => {
-                vec![Instruction::DEQUEUE.to_owned()]
-            }
-            Instruction::Gripper(gripper_command) => {
-                std::iter::once(Instruction::GRIPPER.to_owned())
-                    .chain(gripper_command.tokens())
-                    .collect()
-            }
-            Instruction::Digital(io_source, port, io_type) => {
-                std::iter::once(Instruction::DIGITAL.to_string())
-                    .chain(io_source.tokens())
-                    .chain(std::iter::once(port.to_string()))
-                    .chain(io_type.tokens())
-                    .collect()
-            }
-            Instruction::Current(pose_type) => std::iter::once(Instruction::CURRENT.to_string())
-                .chain(pose_type.tokens())
-                .collect(),
-            Instruction::Custom(s) => std::iter::once(Instruction::CUSTOM.to_string())
-                .chain(s.into_iter().cloned())
-                .collect(),
+    pub fn exec(robot_command: RobotCommand) -> Instruction {
+        Instruction::Execute {
+            robot_command,
+            enter_context: 0.0,
         }
     }
+    pub fn exec_push(robot_command: RobotCommand) -> Instruction {
+        Instruction::Execute {
+            robot_command,
+            enter_context: 1.0,
+        }
+    }
+    pub fn enqueue(robot_command: RobotCommand) -> Instruction {
+        Instruction::Enqueue(robot_command)
+    }
+    pub fn dequeue() -> Instruction {
+        Instruction::Dequeue { enter_context: 0.0 }
+    }
+    pub fn dequeue_push() -> Instruction {
+        Instruction::Dequeue { enter_context: 1.0 }
+    }
+    pub fn pop() -> Instruction {
+        Instruction::Pop
+    }
+
+    pub fn get(get_target: GetTarget) -> Instruction {
+        Instruction::Get(get_target)
+    }
+
+    pub fn gripper(gripper_command: GripperCommand) -> Instruction {
+        Instruction::Gripper(gripper_command)
+    }
+
+    pub fn io_set(target: IOTarget, port: u16, state: bool) -> Instruction {
+        Instruction::IO {
+            target,
+            port,
+            io_command: IOCommand::Set {
+                state: if state { 1.0 } else { 0.0 },
+            },
+        }
+    }
+
+    pub fn io_get(target: IOTarget, port: u16) -> Instruction {
+        Instruction::IO {
+            target,
+            port,
+            io_command: IOCommand::Get,
+        }
+    }
+
+    pub fn custom(custom_command: CustomCommand) -> Instruction {
+        Instruction::Custom(custom_command)
+    }
+
+    pub fn to_json(self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(&self)
+    }
 }
 
-/// Enum representing different types of robot commands.
+/// data structure representing all robot command
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "action")]
+#[serde(rename_all = "snake_case")]
 pub enum RobotCommand {
-    /// Perform a motion with a specific pose and motion type.
-    Motion(MotionType, Pose),
-    /// Set the motion parameter.
-    Param(MotionParam),
-    /// Sleep for a specified duration.
-    Sleep(f64),
-    /// Synchronize the robot.
-    Sync,
+    Synchronize,
+    Sleep {
+        second: f64,
+    },
+    SetParameter(MotionParam),
+    Motion {
+        motion_mode: MotionMode,
+        #[serde(flatten)]
+        target: MotionTarget,
+    },
 }
 
 impl RobotCommand {
-    const MOTION: &'static str = "MOTION";
-    const PARAM: &'static str = "PARAM";
-    const SYNC: &'static str = "SYNC";
-    const SLEEP: &'static str = "SLEEP";
-}
-
-impl Iva for RobotCommand {
-    fn tokens(&self) -> Vec<String> {
-        match self {
-            RobotCommand::Motion(motion_type, pose) => {
-                std::iter::once(RobotCommand::MOTION.to_string())
-                    .chain(motion_type.tokens())
-                    .chain(pose.tokens())
-                    .collect()
-            }
-            RobotCommand::Param(param) => std::iter::once(RobotCommand::PARAM.to_string())
-                .chain(param.tokens())
-                .collect(),
-            RobotCommand::Sync => {
-                vec![RobotCommand::SYNC.to_string()]
-            }
-            RobotCommand::Sleep(second) => {
-                vec![RobotCommand::SLEEP.to_string(), format!("{:9.3}", second)]
-            }
+    pub fn sleep(second: f64) -> RobotCommand {
+        RobotCommand::Sleep { second }
+    }
+    pub fn synchorize() -> RobotCommand {
+        RobotCommand::Synchronize
+    }
+    pub fn set_parameter(motion_param: MotionParam) -> RobotCommand {
+        RobotCommand::SetParameter(motion_param)
+    }
+    pub fn linear(target: Transform) -> RobotCommand {
+        RobotCommand::Motion {
+            motion_mode: MotionMode::Linear,
+            target: target.into(),
+        }
+    }
+    pub fn linear_relative(target: Transform) -> RobotCommand {
+        RobotCommand::Motion {
+            motion_mode: MotionMode::LinearRelative,
+            target: target.into(),
+        }
+    }
+    pub fn joint(target: impl Into<MotionTarget>) -> RobotCommand {
+        RobotCommand::Motion {
+            motion_mode: MotionMode::Joint,
+            target: target.into(),
+        }
+    }
+    pub fn joint_relative(target: Transform) -> RobotCommand {
+        RobotCommand::Motion {
+            motion_mode: MotionMode::JointRelative,
+            target: target.into(),
         }
     }
 }
 
-/// Enum representing different types motion
+/// data structure representing robot motion blend mode
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MotionType {
+#[serde(rename_all = "snake_case")]
+pub enum MotionMode {
     Linear,
     LinearRelative,
     Joint,
     JointRelative,
 }
 
-impl MotionType {
-    const L: &'static str = "L";
-    const LR: &'static str = "LR";
-    const J: &'static str = "J";
-    const JR: &'static str = "JR";
-}
-
-impl Iva for MotionType {
-    fn tokens(&self) -> Vec<String> {
-        match self {
-            MotionType::Linear => vec![MotionType::L.to_string()],
-            MotionType::LinearRelative => vec![MotionType::LR.to_string()],
-            MotionType::Joint => vec![MotionType::J.to_string()],
-            MotionType::JointRelative => vec![MotionType::JR.to_string()],
-        }
-    }
-}
-
-/// Enum representing different types of pose with data
+/// data structure representing robot motion target
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Pose {
-    Joint(JointCoord),
+#[serde(tag = "target")]
+#[serde(rename_all = "snake_case")]
+pub enum MotionTarget {
     Transform(Transform),
+    JointCoord(JointCoord),
 }
 
-impl Pose {
-    const JOINT: &'static str = "JOINT";
-    const TRANSFORM: &'static str = "TRANSFORM";
-}
-
-impl Iva for Pose {
-    fn tokens(&self) -> Vec<String> {
-        match self {
-            Pose::Joint(joint) => std::iter::once(Pose::JOINT.to_string())
-                .chain(joint.tokens())
-                .collect(),
-            Pose::Transform(transform) => std::iter::once(Pose::TRANSFORM.to_string())
-                .chain(transform.tokens())
-                .collect(),
-        }
-    }
-}
-
-/// Enum representing different types of gripper command
+/// data structure representing robot gripper command
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "action")]
+#[serde(rename_all = "snake_case")]
 pub enum GripperCommand {
-    /// activate the gripper
     Activate,
-    /// get the current position of the gripper
     Get,
-    /// set the position of the gripper to its associated label
-    Set(String),
+    Set { label: String },
 }
 
-impl GripperCommand {
-    const ACTIVATE: &'static str = "ACTIVATE";
-    const GET: &'static str = "GET";
-    const SET: &'static str = "SET";
-}
-
-impl Iva for GripperCommand {
-    fn tokens(&self) -> Vec<String> {
-        match self {
-            GripperCommand::Activate => {
-                vec![GripperCommand::ACTIVATE.to_string()]
-            }
-            GripperCommand::Get => {
-                vec![GripperCommand::GET.to_string()]
-            }
-            GripperCommand::Set(s) => {
-                vec![GripperCommand::SET.to_string(), s.to_string()]
-            }
-        }
-    }
-}
-
-/// Enum representing different types of digital Input/Output source
+/// data structure representing psu io target
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum IOSource {
+#[serde(rename_all = "snake_case")]
+pub enum IOTarget {
     Beckhoff,
     Wrist,
 }
 
-impl IOSource {
-    const BECKHOFF: &'static str = "BECKHOFF";
-    const WRIST: &'static str = "WRIST";
-}
-
-impl Iva for IOSource {
-    fn tokens(&self) -> Vec<String> {
-        match self {
-            IOSource::Beckhoff => {
-                vec![IOSource::BECKHOFF.to_string()]
-            }
-            IOSource::Wrist => {
-                vec![IOSource::WRIST.to_string()]
-            }
-        }
-    }
-}
-
-/// Enum representing different types of digital Input/Output
+/// data structure representing io command
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum IOType {
-    Input,
-    Output(IOState),
+#[serde(tag = "action")]
+#[serde(rename_all = "snake_case")]
+pub enum IOCommand {
+    Get,
+    Set { state: f64 },
 }
 
-impl IOType {
-    const INPUT: &'static str = "INPUT";
-    const OUTPUT: &'static str = "OUTPUT";
-}
-
-impl Iva for IOType {
-    fn tokens(&self) -> Vec<String> {
-        match self {
-            IOType::Input => {
-                vec![IOType::INPUT.to_string()]
-            }
-            IOType::Output(state) => std::iter::once(IOType::OUTPUT.to_string())
-                .chain(state.tokens())
-                .collect(),
-        }
-    }
-}
-
-/// Enum representing different types of Digital Input/Output state
+/// data structure representing command to get data from robot
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum IOState {
-    High,
-    Low,
+#[serde(tag = "target")]
+#[serde(rename_all = "snake_case")]
+pub enum GetTarget {
+    Transform,
+    JointCoord,
+    Data { key: String },
 }
 
-impl IOState {
-    const HIGH: &'static str = "HIGH";
-    const LOW: &'static str = "LOW";
-}
-
-impl Iva for IOState {
-    fn tokens(&self) -> Vec<String> {
-        match self {
-            IOState::High => vec![IOState::HIGH.to_string()],
-            IOState::Low => vec![IOState::LOW.to_string()],
-        }
+impl GetTarget {
+    pub fn data(key: impl Into<String>) -> GetTarget {
+        GetTarget::Data { key: key.into() }
     }
 }
 
-/// Enum representing different types of pose
+/// data structure representing custom command
+///
+/// the command is a key-value pair with `String` as key and `f64` or `String` as value
+///
+/// ## Example
+/// ```
+/// use inovo_rs::iva::*;
+///
+/// let my_custom_command = CustomCommand::new()
+///     .add_string("my_string_key", "my_string_value")
+///     .add_float("my_float_key", 69.420);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum PoseType {
-    Frame,
-    Joint,
-}
+#[serde(rename_all = "snake_case")]
+pub struct CustomCommand(BTreeMap<String, CustomArg>);
 
-impl PoseType {
-    const FRAME: &'static str = "FRAME";
-    const JOINT: &'static str = "JOINT";
-}
-
-impl Iva for PoseType {
-    fn tokens(&self) -> Vec<String> {
-        match self {
-            PoseType::Frame => vec![PoseType::FRAME.to_string()],
-            PoseType::Joint => vec![PoseType::JOINT.to_string()],
-        }
+impl CustomCommand {
+    pub fn new() -> CustomCommand {
+        CustomCommand(BTreeMap::default())
     }
+    pub fn add_string(mut self, key: impl Into<String>, value: impl Into<String>) -> CustomCommand {
+        self.0.insert(key.into(), CustomArg::String(value.into()));
+        self
+    }
+    pub fn add_float(mut self, key: impl Into<String>, value: f64) -> CustomCommand {
+        self.0.insert(key.into(), CustomArg::Float(value));
+        self
+    }
+}
+
+/// data structure representing value in custom command
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+#[serde(rename_all = "snake_case")]
+pub enum CustomArg {
+    String(String),
+    Float(f64),
 }

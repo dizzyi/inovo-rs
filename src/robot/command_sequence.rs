@@ -1,19 +1,22 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 
 use serde::{Deserialize, Serialize};
 
-use crate::geometry::IntoPose;
+use crate::geometry::*;
 use crate::iva::*;
-
-use super::MotionParam;
+use crate::robot::MotionParam;
 
 /// A struct to hold a list of robot commands
 /// # Example
-/// ```ignore
+/// ```
+/// use inovo_rs::robot::*;
+/// use inovo_rs::iva::*;
+/// use inovo_rs::geometry::*;
+///
 /// let command_sequence = CommandSequence::new()
-///     .then(RobotCommand::Motion(MotionType::Linear, JointCoord::identity()))
+///     .then(RobotCommand::joint(JointCoord::identity()))
 ///     .then_linear_relative(Transform::from_z(-10.0))
-///     .then_set_param(&MotionParam::default())
+///     .then_set_param(MotionParam::default())
 ///     .then_sleep(10.0)
 ///     .then_sync();
 /// ```
@@ -34,39 +37,41 @@ impl CommandSequence {
         self
     }
 
-    /// append a linear motion with a specified pose
-    pub fn then_linear(self, pose: impl IntoPose) -> Self {
-        self.then(RobotCommand::Motion(MotionType::Linear, pose.into_pose()))
+    /// append a linear motion with a specified target
+    pub fn then_linear(self, target: Transform) -> Self {
+        self.then(RobotCommand::linear(target))
     }
-    /// append a linear relative motion with a specified pose
-    pub fn then_linear_relative(self, pose: impl IntoPose) -> Self {
-        self.then(RobotCommand::Motion(
-            MotionType::LinearRelative,
-            pose.into_pose(),
-        ))
+    /// append a linear relative motion with a specified target
+    pub fn then_linear_relative(self, target: Transform) -> Self {
+        self.then(RobotCommand::linear_relative(target))
     }
-    /// append a joint motion with a specified pose
-    pub fn then_joint(self, pose: impl IntoPose) -> Self {
-        self.then(RobotCommand::Motion(MotionType::Joint, pose.into_pose()))
+    /// append a joint motion with a specified target
+    pub fn then_joint(self, target: impl Into<MotionTarget>) -> Self {
+        self.then(RobotCommand::joint(target))
     }
-    /// append a joint relative motion with a specified pose
-    pub fn then_joint_relative(self, pose: impl IntoPose) -> Self {
-        self.then(RobotCommand::Motion(
-            MotionType::JointRelative,
-            pose.into_pose(),
-        ))
+    /// append a joint relative motion with a specified target
+    pub fn then_joint_relative(self, target: Transform) -> Self {
+        self.then(RobotCommand::joint_relative(target))
     }
     /// append a sleep command
     pub fn then_sleep(self, second: f64) -> Self {
-        self.then(RobotCommand::Sleep(second))
+        self.then(RobotCommand::Sleep { second })
     }
     /// append a synchorize command
     pub fn then_sync(self) -> Self {
-        self.then(RobotCommand::Sync)
+        self.then(RobotCommand::Synchronize)
     }
     /// append a set param command
-    pub fn then_set_param(self, param: &MotionParam) -> Self {
-        self.then(RobotCommand::Param(param.clone()))
+    pub fn then_set_param(self, param: MotionParam) -> Self {
+        self.then(RobotCommand::SetParameter(param))
+    }
+}
+
+impl IntoIterator for CommandSequence {
+    type Item = RobotCommand;
+    type IntoIter = std::vec::IntoIter<RobotCommand>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.seq.into_iter()
     }
 }
 
@@ -74,11 +79,6 @@ impl Deref for CommandSequence {
     type Target = Vec<RobotCommand>;
     fn deref(&self) -> &Self::Target {
         &self.seq
-    }
-}
-impl DerefMut for CommandSequence {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.seq
     }
 }
 

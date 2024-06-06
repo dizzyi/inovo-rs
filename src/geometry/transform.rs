@@ -1,53 +1,59 @@
+use nalgebra::geometry::{Isometry3, UnitQuaternion};
+use nalgebra::Translation3;
+use std::collections::HashMap;
 use std::f64::consts::PI;
 use std::ops::{Div, Mul, Neg};
 
-use nalgebra::geometry::{Isometry3, UnitQuaternion};
-use nalgebra::Translation3;
-
 use serde::{Deserialize, Serialize};
 
-use crate::geometry::IntoPose;
-use crate::iva::Iva;
+use crate::iva::MotionTarget;
+use crate::robot::FromRobot;
 
 /// A structure representing a 3D Transformation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transform {
-    vector: [f64; 3],
-    euler: [f64; 3],
+    x: f64,
+    y: f64,
+    z: f64,
+    rx: f64,
+    ry: f64,
+    rz: f64,
 }
 
 impl Transform {
+    /// create a new transform from vector and euler angle
+    pub fn new(x_mm: f64, y_mm: f64, z_mm: f64, rx_deg: f64, ry_deg: f64, rz_deg: f64) -> Self {
+        Self {
+            x: x_mm,
+            y: y_mm,
+            z: z_mm,
+            rx: rx_deg,
+            ry: ry_deg,
+            rz: rz_deg,
+        }
+    }
     /// create a new identity transform
     pub fn identity() -> Self {
-        Transform {
-            vector: [0_f64; 3],
-            euler: [0_f64; 3],
-        }
-    }
-    /// create a new transform from vector and euler angle
-    pub fn new(vector_mm: [f64; 3], euler_degree: [f64; 3]) -> Self {
-        Self {
-            vector: vector_mm,
-            euler: euler_degree,
-        }
+        Transform::new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     }
     /// create a new transform from an array containing vector and euler angle
-    pub fn from(q: [f64; 6]) -> Self {
-        Self::new([q[0], q[1], q[2]], [q[3], q[4], q[5]])
+    pub fn from_array(q: [f64; 6]) -> Self {
+        Self::new(q[0], q[1], q[2], q[3], q[4], q[5])
     }
     /// create a new transform from vector only
     pub fn from_vector(vector_mm: [f64; 3]) -> Self {
-        Self {
-            vector: vector_mm,
-            euler: [0_f64; 3],
-        }
+        Transform::new(vector_mm[0], vector_mm[1], vector_mm[2], 0.0, 0.0, 0.0)
     }
     /// create a new transform from euler only
     pub fn from_euler(eular_degree: [f64; 3]) -> Self {
-        Self {
-            vector: [0_f64; 3],
-            euler: eular_degree,
-        }
+        Transform::new(
+            0.0,
+            0.0,
+            0.0,
+            eular_degree[0],
+            eular_degree[1],
+            eular_degree[2],
+        )
     }
     /// create a new transform from x component
     pub fn from_x(mm: f64) -> Self {
@@ -75,113 +81,80 @@ impl Transform {
     }
 
     /// get the vector of the transform
-    pub fn get_vector(&self) -> &[f64; 3] {
-        &self.vector
+    pub fn get_vector(&self) -> [f64; 3] {
+        [self.x, self.y, self.z]
     }
     /// get the euler of the transform
-    pub fn get_euler(&self) -> &[f64; 3] {
-        &self.euler
+    pub fn get_euler(&self) -> [f64; 3] {
+        [self.rx, self.ry, self.rz]
     }
     /// get the x component of the transform
     pub fn get_x(&self) -> f64 {
-        self.vector[0]
+        self.x
     }
     /// get the y component of the transform
     pub fn get_y(&self) -> f64 {
-        self.vector[1]
+        self.y
     }
     /// get the z component of the transform
     pub fn get_z(&self) -> f64 {
-        self.vector[2]
+        self.z
     }
     /// get the rx component of the transform
     pub fn get_rx(&self) -> f64 {
-        self.euler[0]
+        self.rx
     }
     /// get the ry component of the transform
     pub fn get_ry(&self) -> f64 {
-        self.euler[1]
+        self.ry
     }
     /// get the rz component of the transform
     pub fn get_rz(&self) -> f64 {
-        self.euler[2]
+        self.rz
     }
     /// set the vector of the transform
     pub fn set_vector(mut self, vector_mm: [f64; 3]) -> Self {
-        self.vector = vector_mm;
+        self.x = vector_mm[0];
+        self.y = vector_mm[1];
+        self.z = vector_mm[2];
         self
     }
     /// set the euler of the transform
     pub fn set_euler(mut self, eular_degree: [f64; 3]) -> Self {
-        self.euler = eular_degree;
+        self.rx = eular_degree[0];
+        self.ry = eular_degree[1];
+        self.rz = eular_degree[2];
         self
     }
     /// set the x component of the transform
     pub fn set_x(mut self, mm: f64) -> Self {
-        self.vector[0] = mm;
+        self.x = mm;
         self
     }
     /// set the y component of the transform
     pub fn set_y(mut self, mm: f64) -> Self {
-        self.vector[1] = mm;
+        self.y = mm;
         self
     }
     /// set the z component of the transform
     pub fn set_z(mut self, mm: f64) -> Self {
-        self.vector[2] = mm;
+        self.z = mm;
         self
     }
     /// set the rx component of the transform
     pub fn set_rx(mut self, degree: f64) -> Self {
-        self.euler[0] = degree;
+        self.rx = degree;
         self
     }
     /// set the ry component of the transform
     pub fn set_ry(mut self, degree: f64) -> Self {
-        self.euler[1] = degree;
+        self.ry = degree;
         self
     }
     /// set the rz component of the transform
     pub fn set_rz(mut self, degree: f64) -> Self {
-        self.euler[2] = degree;
+        self.rz = degree;
         self
-    }
-
-    /// create a new transform from inovo robot message
-    pub fn from_robot(value: String) -> Result<Self, String> {
-        value
-            .replace(&['{', '}', ' '], "")
-            .split(",")
-            .map(|kv| kv.split(":").collect::<Vec<&str>>())
-            .collect::<Vec<_>>()
-            .split_last()
-            .ok_or(format!("error spliting last"))?
-            .1
-            .iter()
-            .fold(Ok(Transform::identity()), |acc, kv| {
-                if let Ok(t) = acc {
-                    match (kv.get(0), kv.get(1)) {
-                        (Some(&k), Some(&v)) => {
-                            if let Ok(f) = v.parse::<f64>() {
-                                match k {
-                                    "x" => Ok(t.set_x(f * 1000.0)),
-                                    "y" => Ok(t.set_y(f * 1000.0)),
-                                    "z" => Ok(t.set_z(f * 1000.0)),
-                                    "rx" => Ok(t.set_rx(f / PI * 180.0)),
-                                    "ry" => Ok(t.set_ry(f / PI * 180.0)),
-                                    "rz" => Ok(t.set_rz(f / PI * 180.0)),
-                                    _ => Err(format!("unknown key {}", k)),
-                                }
-                            } else {
-                                Err(format!("cannot parse {} to f64", v))
-                            }
-                        }
-                        _ => Err(format!("kv value error {:?}", kv)),
-                    }
-                } else {
-                    acc
-                }
-            })
     }
 
     /// append a new transform to the original transform
@@ -278,11 +251,11 @@ impl Transform {
 
     /// get the euler rotation in radian
     fn radian_euler(&self) -> [f64; 3] {
-        self.euler.map(|p| p / 180.0 * PI)
+        self.get_euler().map(|p| p / 180.0 * PI)
     }
     /// get the vector in `Translation3<f64>`
     fn translation(&self) -> Translation3<f64> {
-        Translation3::from(self.vector)
+        Translation3::from(self.get_vector())
     }
     /// get the euler in `UnitQuaterion<f64>`
     fn unit_quaternion(&self) -> UnitQuaternion<f64> {
@@ -312,7 +285,51 @@ impl From<Isometry3<f64>> for Transform {
         let vector = value.translation.vector.into();
         let euler = value.rotation.euler_angles();
         let euler = [euler.0, euler.1, euler.2].map(|p| p / PI * 180.0);
-        Self { vector, euler }
+        Transform::from_vector(vector).set_euler(euler)
+    }
+}
+
+impl From<String> for Transform {
+    fn from(value: String) -> Self {
+        value
+            .chars()
+            .skip_while(|&c| c != 'r')
+            .take_while(|&c| c != '}')
+            .collect::<String>()
+            .replace(&['{', '}', ' '], "")
+            .split(",")
+            .filter_map(|term| {
+                let t = term.split(':').collect::<Vec<_>>();
+
+                let k = t.get(0)?.to_string();
+
+                let v = match t.get(1)?.parse::<f64>() {
+                    Ok(f) => f,
+                    _ => return None,
+                };
+
+                let v = if k.contains('r') {
+                    crate::geometry::rad_to_deg(v)
+                } else {
+                    v * 1000.0
+                };
+
+                Some((k, v))
+            })
+            .collect::<HashMap<String, f64>>()
+            .into()
+    }
+}
+
+impl From<HashMap<String, f64>> for Transform {
+    fn from(value: HashMap<String, f64>) -> Transform {
+        Transform::identity()
+            .set_x(value.get("x").cloned().unwrap_or_default())
+            .set_y(value.get("y").cloned().unwrap_or_default())
+            .set_z(value.get("z").cloned().unwrap_or_default())
+            .set_rx(value.get("rx").cloned().unwrap_or_default())
+            .set_ry(value.get("ry").cloned().unwrap_or_default())
+            .set_rz(value.get("rz").cloned().unwrap_or_default())
     }
 }
 
@@ -337,19 +354,14 @@ impl Neg for Transform {
     }
 }
 
-impl Iva for Transform {
-    fn tokens(&self) -> Vec<String> {
-        self.vector
-            .map(|p| format!("{:8.2}", p))
-            .iter()
-            .chain(&self.euler.map(|p| format!("{:8.2}", p)))
-            .cloned()
-            .collect()
+impl Into<MotionTarget> for Transform {
+    fn into(self) -> MotionTarget {
+        MotionTarget::Transform(self)
     }
 }
 
-impl IntoPose for Transform {
-    fn into_pose(self) -> crate::iva::Pose {
-        crate::iva::Pose::Transform(self)
+impl FromRobot for Transform {
+    fn from_robot(res: String) -> Result<Self, String> {
+        Ok(res.into())
     }
 }

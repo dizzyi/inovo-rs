@@ -1,5 +1,6 @@
 //! [![Static Badge](https://img.shields.io/badge/crate-inovo_rs-red)](https://crates.io/crates/inovo-rs)
 //! [![docs.rs](https://img.shields.io/docsrs/inovo-rs)](https://docs.rs/inovo-rs/latest/inovo_rs/)
+//! 
 //! # Inovo Robot API
 //!
 //! `inovo_rs` is a library with communication, command, and utility function and data structure for

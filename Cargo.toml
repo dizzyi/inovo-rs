@@ -1,21 +1,19 @@
-[package]
-name = "inovo-rs"
-version = "0.1.1"
-edition = "2021"
-authors = ["Alan, CHUNG Ho Lun, dizzyi@github, deeralan827@gmail.com"]
-description = "API for intergrating inovo robot arm."
-license = "MIT"
-readme = "README.md"
+[workspace]
+resolver = "2"
+members = ["inovo-rs", "inovo-rs-macro"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+[workspace.dependencies]
 chrono = "0.4.31"
 local-ip-address = "0.6.1"
-nalgebra = "0.32.3"
+nalgebra = "0.33.2"
 net2 = "0.2.39"
 websocket = "0.27.0"
-serde = {version = "1.0.192", features = ["derive"]}
+serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
-colored = "2.1.0"
-thiserror = "1.0.61"
+colored = "3.0.0"
+thiserror = "2.0.12"
+roslibrust = { version = "0.14.0", features = ["rosbridge"] }
+serde_repr = "0.1.20"
+tokio = { version = "1.45.1", features = ["full"] }
+
+inovo-rs-macro = { path = "./inovo-rs-macro" }

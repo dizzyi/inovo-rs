@@ -90,7 +90,8 @@ impl Robot {
 
         let mut listener = socket::Listener::new(port, listener_logger)?;
 
-        RosBridge::new(host.clone(), 1000).run_sequence("iva")?;
+        unimplemented!();
+        // RosBridge::new(host.clone(), 1000).run_sequence("iva")?;
 
         let stream_logger =
             stream_logger.unwrap_or_else(|| Logger::default_target(format!("Inovo - {}", host)));
@@ -412,8 +413,8 @@ impl Context<Robot> for IvaContext {
 pub enum RobotError {
     #[error(transparent)]
     SocketError(#[from] std::io::Error),
-    #[error(transparent)]
-    RosBridgeError(#[from] RosBridgeError),
+    // #[error(transparent)]
+    // RosBridgeError(#[from] RosBridgeError),
     #[error(transparent)]
     JsonSer(#[from] serde_json::Error),
     #[error("Response Error")]

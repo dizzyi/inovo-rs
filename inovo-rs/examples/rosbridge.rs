@@ -5,8 +5,12 @@ use tokio::io::AsyncReadExt;
 
 use roslibrust::{rosbridge::ClientHandle, RosMessageType};
 
+use tracing::info;
+
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt::init();
+
     // let msg = InovoMessage {
     //     header: InovoHeader {
     //         frame_id: "s".to_string(),
@@ -20,24 +24,24 @@ async fn main() {
     //     payload: PoseStamped::default(),
     // };
 
-    // println!("{}", serde_json::to_string_pretty(&msg).unwrap());
+    // info!("{}", serde_json::to_string_pretty(&msg).unwrap());
 
     // return;
 
-    println!("{}", SpeedStamped::ROS_TYPE_NAME);
-    println!("{}", PoseStamped::ROS_TYPE_NAME);
+    info!("{}", SpeedStamped::ROS_TYPE_NAME);
+    info!("{}", PoseStamped::ROS_TYPE_NAME);
 
     let client = roslibrust::rosbridge::ClientHandle::new("ws://192.168.1.127:9090")
         .await
         .unwrap();
-    println!("ClientHandle connected");
+    info!("ClientHandle connected");
     // {
     //     let sub = client
     //         .subscribe::<InovoMessage<Res>>(ClientHandle::TOPIC_TCP_SPEED)
     //         .await
     //         .unwrap();
     //     for i in 0..3 {
-    //         println!("{:#?}", sub.next().await)
+    //         info!("{:#?}", sub.next().await)
     //     }
     // }
     // {
@@ -46,14 +50,14 @@ async fn main() {
     //         .await
     //         .unwrap();
     //     for i in 0..3 {
-    //         println!("{:#?}", sub.next().await)
+    //         info!("{:#?}", sub.next().await)
     //     }
     // }
 
     // let j = client.arm_state().await;
     // for i in 0..3 {
     //     let js = j.next().await;
-    //     println!("{:?}", js.payload)
+    //     info!("{:?}", js.payload)
     // }
 
     // return;
@@ -62,7 +66,7 @@ async fn main() {
     //     let sub = client.subscribe::<Res>("/psu/estop/state").await.unwrap();
 
     //     for i in 0..3 {
-    //         println!("{:#?}", sub.next().await);
+    //         info!("{:#?}", sub.next().await);
     //     }
     // }
 
@@ -71,62 +75,62 @@ async fn main() {
     //     .call_service::<Trigger>("/sequence/pause", Trigger {})
     //     .await
     //     .unwrap();
-    // println!("{:?}", res);
+    // info!("{:?}", res);
 
     // return;
 
     {
         let sub = client.tcp_speed().await;
         for i in 0..3 {
-            println!("{:#?}", sub.next().await)
+            info!("{:#?}", sub.next().await)
         }
     }
     {
         let sub = client.tcp_pose().await;
         for i in 0..3 {
-            println!("{:#?}", sub.next().await)
+            info!("{:#?}", sub.next().await)
         }
     }
     // {
     //     let sub = client.joint_state().await;
     //     for i in 0..3 {
-    //         println!("{:#?}", sub.next().await)
+    //         info!("{:#?}", sub.next().await)
     //     }
     // }
     {
         let sub = client.power_state().await;
         for i in 0..3 {
-            println!("{:#?}", sub.next().await)
+            info!("{:#?}", sub.next().await)
         }
     }
     {
         let sub = client.robot_state().await;
         for i in 0..3 {
-            println!("{:#?}", sub.next().await)
+            info!("{:#?}", sub.next().await)
         }
     }
     {
         let sub = client.estop_state().await;
         for i in 0..3 {
-            println!("{:#?}", sub.next().await)
+            info!("{:#?}", sub.next().await)
         }
     }
     {
         let sub = client.safe_stop_state().await;
         for i in 0..3 {
-            println!("{:#?}", sub.most_recent().await)
+            info!("{:#?}", sub.most_recent().await)
         }
     }
     {
         let sub = client.runtime_state().await;
         for i in 0..3 {
-            println!("{:#?}", sub.most_recent().await)
+            info!("{:#?}", sub.most_recent().await)
         }
     }
     {
         let sub = client.arm_state().await;
         for i in 0..3 {
-            println!("{:#?}", sub.most_recent().await)
+            info!("{:#?}", sub.most_recent().await)
         }
     }
 
@@ -184,38 +188,38 @@ async fn main() {
     // client.arm_enable().await;
     // wait_line().await;
 
-    // println!("starting . . .");
+    // info!("starting . . .");
     // let res = client.sequence_start().await;
-    // println!("res : {:?}", res);
+    // info!("res : {:?}", res);
     // wait_line().await;
-    println!("starting . . .");
+    info!("starting . . .");
     let res = client.sequence_function("do something").await;
-    println!("res : {:?}", res);
+    info!("res : {:?}", res);
     wait_line().await;
 
-    println!("pausing . . .");
+    info!("pausing . . .");
     let res = client.sequence_pause().await;
-    println!("res : {:?}", res);
+    info!("res : {:?}", res);
     wait_line().await;
 
-    println!("stepping . . .");
+    info!("stepping . . .");
     let res = client.sequence_step().await;
-    println!("res : {:?}", res);
+    info!("res : {:?}", res);
     wait_line().await;
 
-    println!("debugging . . .");
+    info!("debugging . . .");
     let res = client.sequence_debug().await;
-    println!("res : {:?}", res);
+    info!("res : {:?}", res);
     wait_line().await;
 
-    println!("continuing . . .");
+    info!("continuing . . .");
     let res = client.sequence_continue().await;
-    println!("res : {:?}", res);
+    info!("res : {:?}", res);
     wait_line().await;
 
-    println!("stopping . . .");
+    info!("stopping . . .");
     let res = client.sequence_stop().await;
-    println!("res : {:?}", res);
+    info!("res : {:?}", res);
     wait_line().await;
 
     // client.arm_disable().await;
@@ -232,7 +236,7 @@ async fn main() {
             loop {
                 let msg = sub.next().await;
 
-                println!("{:#?}", msg);
+                info!("{:#?}", msg);
             }
         });
     }
@@ -243,7 +247,7 @@ async fn main() {
         .unwrap();
 
     for _ in 0..1000 {
-        // println!("a");
+        // info!("a");
         pubisher
             .publish(&InovoMessage {
                 header: InovoHeader {
@@ -273,7 +277,7 @@ async fn main() {
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
     for _ in 0..1000 {
-        // println!("b");
+        // info!("b");
         pubisher
             .publish(&InovoMessage {
                 header: InovoHeader {

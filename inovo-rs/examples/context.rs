@@ -1,13 +1,11 @@
 use inovo_rs::context::*;
-use inovo_rs::logger::*;
+use tracing::info;
 
-struct ContextMachine {
-    pub logger: Logger,
-}
+struct ContextMachine {}
 
 impl ContextMachine {
     pub fn doing_stuff(&mut self) {
-        self.logger.info("doing stuff");
+        info!("doing stuff");
     }
 
     pub fn with_context_1(&mut self) -> ContextGuard<Self, Context1> {
@@ -18,16 +16,16 @@ impl ContextMachine {
     }
 
     pub fn start_up_1(&mut self) {
-        self.logger.info("starting up 1");
+        info!("starting up 1");
     }
     pub fn start_up_2(&mut self) {
-        self.logger.info("starting up 2");
+        info!("starting up 2");
     }
     pub fn clean_up_1(&mut self) {
-        self.logger.info("clean up 1");
+        info!("clean up 1");
     }
     pub fn clean_up_2(&mut self) {
-        self.logger.info("clean up 2");
+        info!("clean up 2");
     }
 }
 
@@ -56,9 +54,10 @@ impl Context<ContextMachine> for Context2 {
 fn do_some_stuff() {}
 
 fn main() {
-    let mut context_machine = ContextMachine {
-        logger: Logger::default_target("context machine"),
-    };
+        tracing_subscriber::fmt::init();
+
+
+    let mut context_machine = ContextMachine {};
 
     // Simple usage
     //

@@ -3,7 +3,6 @@
 use crate::context::{Context, ContextGuard};
 use crate::geometry::*;
 use crate::iva::*;
-use crate::logger::{Logable, Logger};
 use crate::ros_bridge::*;
 use crate::socket;
 
@@ -59,50 +58,37 @@ pub use motion_param::*;
 /// }
 /// ```
 pub struct Robot {
-    /// the logger for the robot arm
-    logger: Logger,
     /// the tcp socket connection with the psu
     stream: socket::Stream,
 }
 
-impl Logable for Robot {
-    fn get_logger(&mut self) -> &mut Logger {
-        &mut self.logger
-    }
-}
-
 impl Robot {
     /// construct a new [`Robot`]
-    pub fn new(stream: socket::Stream, logger: Logger) -> Self {
-        Self { stream, logger }
+    pub fn new(stream: socket::Stream) -> Self {
+        Self { stream }
     }
 
     /// create a new instance, and call ros bridge run sequence to remotly start
-    pub fn new_inovo(
-        port: u16,
-        host: impl Into<String>,
-        logger: Option<Logger>,
-        listener_logger: Option<Logger>,
-        stream_logger: Option<Logger>,
-    ) -> Result<Self, RobotError> {
+    pub fn new_inovo(port: u16, host: impl Into<String>) -> Result<Self, RobotError> {
         let host = host.into();
-        let logger = logger.unwrap_or_else(|| Logger::default_target(host.clone()));
 
-        let mut listener = socket::Listener::new(port, listener_logger)?;
+        let mut listener = socket::Listener::new(port)?;
 
-        unimplemented!();
-        // RosBridge::new(host.clone(), 1000).run_sequence("iva")?;
+        let response = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            roslibrust::rosbridge::ClientHandle::new(host.clone())
+                .await
+                .unwrap()
+                .sequence_function("iva")
+                .await
+        });
 
-        let stream_logger =
-            stream_logger.unwrap_or_else(|| Logger::default_target(format!("Inovo - {}", host)));
+        let stream = listener.accept()?;
 
-        let stream = listener.accept(Some(stream_logger))?;
-
-        Ok(Self::new(stream, logger))
+        Ok(Self::new(stream))
     }
     /// create and run sequence with of inovo arm with default logger
     pub fn defaut_logger(port: u16, host: impl Into<String>) -> Result<Self, RobotError> {
-        Self::new_inovo(port, host, None, None, None)
+        Self::new_inovo(port, host)
     }
 
     /// write a message to the socket
@@ -123,7 +109,7 @@ impl IvaRobot for Robot {
 }
 
 /// A trait of inovo robot, for iva protocal
-pub trait IvaRobot: Logable
+pub trait IvaRobot
 where
     IvaContext: Context<Self>,
 {

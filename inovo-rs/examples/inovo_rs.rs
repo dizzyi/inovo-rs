@@ -1,13 +1,12 @@
 use inovo_rs::geometry::*;
 use inovo_rs::iva::CustomCommand;
-use inovo_rs::logger::Logger;
 use inovo_rs::robot::*;
+use tracing::info;
 
 fn main() -> Result<(), RobotError> {
-    // create a new default logger
-    let mut logger = Logger::default_target("Robot Example");
+    tracing_subscriber::fmt::init();
 
-    logger.info("Creating new robot.");
+    info!("Creating new robot.");
 
     // create a new client to the robot
     let mut bot = Robot::defaut_logger(50003, "192.168.1.121")?;
@@ -135,9 +134,9 @@ fn main() -> Result<(), RobotError> {
     bot.gripper_activate()?;
     // getting/setting the gripper
     bot.gripper_set("open")?;
-    logger.info(format!("gripper get: {}", bot.gripper_get()?));
+    info!("gripper get: {}", bot.gripper_get()?);
     bot.gripper_set("close")?;
-    logger.info(format!("gripper get: {}", bot.gripper_get()?));
+    info!("gripper get: {}", bot.gripper_get()?);
 
     // Digital IO
     //
@@ -147,7 +146,7 @@ fn main() -> Result<(), RobotError> {
         bot.sleep(1.0)?;
 
         let b = bot.beckhoff_get(i)?;
-        logger.info(format!("Beckhoff Input - port {}, state : {}", i, b));
+        info!("Beckhoff Input - port {}, state : {}", i, b);
         bot.sleep(1.0)?;
 
         bot.beckhoff_set(i, false)?;
@@ -165,14 +164,14 @@ fn main() -> Result<(), RobotError> {
     let my_transform: Transform = bot.get_data("my transform")?;
     let my_waypoint_j: JointCoord = bot.get_data("my waypoint")?;
     let my_waypoint_t: Transform = bot.get_data("my waypoint")?;
-    logger.info(format!("my bool        : {}", my_bool));
-    logger.info(format!("my i64         : {}", my_i64));
-    logger.info(format!("my f64         : {}", my_f64));
-    logger.info(format!("my string      : {}", my_string));
-    logger.info(format!("my joint coord : {:?}", my_joint_coord));
-    logger.info(format!("my transform   : {:?}", my_transform));
-    logger.info(format!("my way point j : {:?}", my_waypoint_j));
-    logger.info(format!("my way point t : {:?}", my_waypoint_t));
+    info!("my bool        : {}", my_bool);
+    info!("my i64         : {}", my_i64);
+    info!("my f64         : {}", my_f64);
+    info!("my string      : {}", my_string);
+    info!("my joint coord : {:?}", my_joint_coord);
+    info!("my transform   : {:?}", my_transform);
+    info!("my way point j : {:?}", my_waypoint_j);
+    info!("my way point t : {:?}", my_waypoint_t);
 
     // Custom Command
     //
@@ -183,7 +182,7 @@ fn main() -> Result<(), RobotError> {
         .add_string("my_string", "this is a string key");
 
     let response = bot.custom(custom_command)?;
-    logger.info(response);
+    info!(response);
 
     Ok(())
 }

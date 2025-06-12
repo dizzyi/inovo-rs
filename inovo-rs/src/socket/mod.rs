@@ -22,8 +22,7 @@
 use net2::TcpBuilder;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-
-use crate::logger::*;
+use tracing::{debug, info};
 
 /// A struct respresenting Tcp listener
 /// # Example
@@ -35,68 +34,37 @@ use crate::logger::*;
 /// let mut stream = listener.accept(None).unwrap();
 /// ```
 pub struct Listener {
-    /// The logger of the tcp listener
-    logger: Logger,
     /// The tcp listener
     tcp_listener: TcpListener,
 }
 
-impl Logable for Listener {
-    fn get_logger(&mut self) -> &mut Logger {
-        &mut self.logger
-    }
-}
-
 impl Listener {
     /// Create a new TCP listener, bounded to a specified port
-    pub fn new(port: u16, logger: Option<Logger>) -> Result<Listener, io::Error> {
+    pub fn new(port: u16) -> Result<Listener, io::Error> {
         let ip = local_ip_address::local_ip().unwrap();
         let addr = SocketAddr::from((ip, port));
 
-        let mut logger = logger.unwrap_or_else(|| {
-            let name = format!("Listener {}", addr).replace(":", "-");
-            Logger::default_target(&name)
-        });
-
-        logger.info("creating new socket . . .");
-        logger.info(format!("--- Address : {}", addr));
+        info!("creating new socket . . .");
+        info!("--- Address : {}", addr);
 
         let tcp_listener = TcpListener::bind(addr)?;
-        logger.info("Socket binding successful.");
+        info!("Socket binding successful.");
 
-        Ok(Self {
-            tcp_listener,
-            logger,
-        })
+        Ok(Self { tcp_listener })
     }
     /// accept a new connection and return `Stream`
     ///
     /// ## Argument
     /// - `logger : Option<Logger>` : a logger for the accepted stream.
-    pub fn accept(&mut self, logger: Option<Logger>) -> Result<Stream, io::Error> {
-        self.info("accepting new connection . . .");
+    pub fn accept(&mut self) -> Result<Stream, io::Error> {
+        info!("accepting new connection . . .");
 
         let (tcp_stream, _) = self.tcp_listener.accept()?;
 
-        self.info("successful accept new connection.");
-        self.info(format!("    {}", tcp_stream.peer_addr()?));
+        info!("successful accept new connection.");
+        info!("    {}", tcp_stream.peer_addr()?);
 
-        let logger = logger.unwrap_or_else(|| {
-            let local_addr = self
-                .tcp_listener
-                .local_addr()
-                .unwrap()
-                .to_string()
-                .replace(":", "-");
-            let peer_addr = tcp_stream
-                .peer_addr()
-                .unwrap()
-                .to_string()
-                .replace(":", "-");
-            Logger::default_target(format!("Handle {} {}", local_addr, peer_addr))
-        });
-
-        Stream::new(tcp_stream, logger)
+        Stream::new(tcp_stream)
     }
 
     pub fn addr(&self) -> Result<SocketAddr, io::Error> {
@@ -123,14 +91,6 @@ pub struct Stream {
     buf_reader: BufReader<TcpStream>,
     /// Buffer for reading message
     buffer: String,
-    /// Logger of tcp stream
-    logger: Logger,
-}
-
-impl Logable for Stream {
-    fn get_logger(&mut self) -> &mut Logger {
-        &mut self.logger
-    }
 }
 
 impl Stream {
@@ -139,18 +99,17 @@ impl Stream {
     /// ## Argument
     /// - `name : Option<String>` : a name for the accepted stream, default to ip address
     /// - `logger : Option<Logger>` : a logger for the accepted stream.
-    pub fn new(tcp_stream: TcpStream, mut logger: Logger) -> Result<Self, io::Error> {
+    pub fn new(tcp_stream: TcpStream) -> Result<Self, io::Error> {
         let buf_writer = BufWriter::new(tcp_stream.try_clone()?);
         let buf_reader = BufReader::new(tcp_stream.try_clone()?);
         let buffer = String::new();
 
-        logger.info("New Tcp Stream created successful.");
+        info!("New Tcp Stream created successful.");
 
         Ok(Stream {
             buf_writer,
             buf_reader,
             buffer,
-            logger,
         })
     }
     /// connect to a socket
@@ -159,25 +118,19 @@ impl Stream {
     /// - `addr: SocketAddr` : target's socket address
     /// - `name : Option<String>` : a name for the accepted stream, default to ip address
     /// - `logger : Option<Logger>` : a logger for the accepted stream.
-    pub fn connect(port: u16, addr: SocketAddr, logger: Option<Logger>) -> Result<Self, io::Error> {
+    pub fn connect(port: u16, addr: SocketAddr) -> Result<Self, io::Error> {
         let ip = local_ip_address::local_ip().unwrap();
         let local_addr = SocketAddr::from((ip, port));
 
-        let logger = logger.unwrap_or_else(|| {
-            let peer_addr = addr.to_string().replace(":", "-");
-            let local_addr = local_addr.clone().to_string().replace(":", "-");
-            Logger::default_target(format!("Client {} {}", local_addr, peer_addr))
-        });
-
         let tcp_stream = TcpBuilder::new_v4()?.bind(local_addr)?.connect(addr)?;
 
-        Self::new(tcp_stream, logger)
+        Self::new(tcp_stream)
     }
 
     /// write a message ends with `\r\n` to the socket stream
     pub fn write(&mut self, msg: impl Into<String>) -> Result<(), io::Error> {
         let msg: String = format!("{}\r\n", msg.into());
-        self.debug(format!(">>> {}", msg.trim()));
+        debug!(">>> {}", msg.trim());
         self.buf_writer.write(msg.as_bytes())?;
         self.buf_writer.flush()?;
         Ok(())
@@ -191,7 +144,7 @@ impl Stream {
             return Err(std::io::Error::other("0 input bytes, diconnected"));
         }
         let msg = self.buffer.clone().trim().to_string();
-        self.debug(format!("<<< {}", msg));
+        debug!("<<< {}", msg);
         Ok(msg)
     }
     /// get the local socket address of the stream

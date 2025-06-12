@@ -1,12 +1,10 @@
 use inovo_rs::geometry::*;
 use inovo_rs::iva::*;
-use inovo_rs::logger::*;
 use inovo_rs::robot::MotionParam;
+use tracing::{error, info};
 
 #[test]
 pub fn iva_test() {
-    let mut logger = Logger::default_target("IVA test");
-
     let cmds = vec![
         RobotCommand::Synchronize,
         RobotCommand::Sleep { second: 1.0 },
@@ -59,14 +57,14 @@ pub fn iva_test() {
 
     for inst in insts {
         match inst.to_json() {
-            Ok(json) => logger.info(format!(
+            Ok(json) => info!(
                 "{}",
                 json.split("\n")
                     .map(|s| format!("{}{}", " ".repeat(0), s))
                     .collect::<Vec<_>>()
                     .join("\n")
-            )),
-            Err(e) => logger.error(e.to_string()),
+            ),
+            Err(e) => error!("{}", e.to_string()),
         };
     }
 }

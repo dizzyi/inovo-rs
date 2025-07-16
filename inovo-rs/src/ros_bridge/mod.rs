@@ -1,5 +1,6 @@
-use std::fmt::Debug;
 use std::future::Future;
+use std::ops::Mul;
+use std::{fmt::Debug, ops::Add};
 
 use roslibrust::{
     rosbridge::{ClientHandle, Publisher, Subscriber},
@@ -53,6 +54,21 @@ pub struct Vec3 {
     pub z: f64,
 }
 
+impl Into<nalgebra::SVector<f64, 3>> for Vec3 {
+    fn into(self) -> nalgebra::SVector<f64, 3> {
+        nalgebra::SVector::<f64, 3>::new(self.x, self.y, self.z)
+    }
+}
+impl From<nalgebra::SVector<f64, 3>> for Vec3 {
+    fn from(value: nalgebra::SVector<f64, 3>) -> Self {
+        Vec3 {
+            x: value.x,
+            y: value.y,
+            z: value.z,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Vec4 {
     pub x: f64,
@@ -88,7 +104,7 @@ pub struct Speed {
 #[inovo_msg("geometry_msgs/PoseStamped")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct PoseStamped {
-    pose: Pose,
+    pub pose: Pose,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]

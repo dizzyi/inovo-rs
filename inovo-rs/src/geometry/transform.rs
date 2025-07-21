@@ -6,18 +6,19 @@ use std::ops::{Div, Mul, Neg};
 
 use serde::{Deserialize, Serialize};
 
+use crate::geometry::deg_to_rad;
 use crate::iva::MotionTarget;
 use crate::robot::FromRobot;
 
 /// A structure representing a 3D Transformation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Transform {
-    x: f64,
-    y: f64,
-    z: f64,
-    rx: f64,
-    ry: f64,
-    rz: f64,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub rx: f64,
+    pub ry: f64,
+    pub rz: f64,
 }
 
 impl Transform {
@@ -88,30 +89,30 @@ impl Transform {
     pub fn get_euler(&self) -> [f64; 3] {
         [self.rx, self.ry, self.rz]
     }
-    /// get the x component of the transform
-    pub fn get_x(&self) -> f64 {
-        self.x
-    }
-    /// get the y component of the transform
-    pub fn get_y(&self) -> f64 {
-        self.y
-    }
-    /// get the z component of the transform
-    pub fn get_z(&self) -> f64 {
-        self.z
-    }
-    /// get the rx component of the transform
-    pub fn get_rx(&self) -> f64 {
-        self.rx
-    }
-    /// get the ry component of the transform
-    pub fn get_ry(&self) -> f64 {
-        self.ry
-    }
-    /// get the rz component of the transform
-    pub fn get_rz(&self) -> f64 {
-        self.rz
-    }
+    // /// get the x component of the transform
+    // pub fn get_x(&self) -> f64 {
+    //     self.x
+    // }
+    // /// get the y component of the transform
+    // pub fn get_y(&self) -> f64 {
+    //     self.y
+    // }
+    // /// get the z component of the transform
+    // pub fn get_z(&self) -> f64 {
+    //     self.z
+    // }
+    // /// get the rx component of the transform
+    // pub fn get_rx(&self) -> f64 {
+    //     self.rx
+    // }
+    // /// get the ry component of the transform
+    // pub fn get_ry(&self) -> f64 {
+    //     self.ry
+    // }
+    // /// get the rz component of the transform
+    // pub fn get_rz(&self) -> f64 {
+    //     self.rz
+    // }
     /// set the vector of the transform
     pub fn set_vector(mut self, vector_mm: [f64; 3]) -> Self {
         self.x = vector_mm[0];
@@ -251,7 +252,7 @@ impl Transform {
 
     /// get the euler rotation in radian
     fn radian_euler(&self) -> [f64; 3] {
-        self.get_euler().map(|p| p / 180.0 * PI)
+        self.get_euler().map(deg_to_rad)
     }
     /// get the vector in `Translation3<f64>`
     fn translation(&self) -> Translation3<f64> {
@@ -363,5 +364,11 @@ impl Into<MotionTarget> for Transform {
 impl FromRobot for Transform {
     fn from_robot(res: String) -> Result<Self, String> {
         Ok(res.into())
+    }
+}
+
+impl From<crate::ros_bridge::Pose> for Transform {
+    fn from(value: crate::ros_bridge::Pose) -> Self {
+        Transform::from(value.into_isometry())
     }
 }

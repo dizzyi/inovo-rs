@@ -1,10 +1,8 @@
-use std::future::Future;
-use std::ops::Mul;
-use std::{fmt::Debug, ops::Add};
+use std::{fmt::Debug, vec};
 
 use roslibrust::{
     rosbridge::{ClientHandle, Publisher, Subscriber},
-    RosMessageType, RosServiceType, Service,
+    RosMessageType, RosServiceType,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_repr::*;
@@ -28,17 +26,17 @@ pub struct InovoHeader {
     pub stamp: Stamp,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Stamp {
-    pub nsecs: u64,
     pub secs: u64,
+    pub nsecs: u64,
 }
 
-// pub trait InovoMessageType:
-//     Debug + Clone + Serialize + DeserializeOwned + PartialEq + Send + Sync + 'static
-// {
-//     const INOVO_TYPE_NAME: &'static str;
-// }
+impl Into<u128> for Stamp {
+    fn into(self) -> u128 {
+        self.nsecs as u128 + 1_000_000_000 * self.secs as u128
+    }
+}
 
 impl<T> RosMessageType for InovoMessage<T>
 where
@@ -47,20 +45,20 @@ where
     const ROS_TYPE_NAME: &'static str = T::ROS_TYPE_NAME;
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
 pub struct Vec3 {
     pub x: f64,
     pub y: f64,
     pub z: f64,
 }
 
-impl Into<nalgebra::SVector<f64, 3>> for Vec3 {
-    fn into(self) -> nalgebra::SVector<f64, 3> {
-        nalgebra::SVector::<f64, 3>::new(self.x, self.y, self.z)
+impl Into<nalgebra::Vector3<f64>> for Vec3 {
+    fn into(self) -> nalgebra::Vector3<f64> {
+        nalgebra::Vector3::<f64>::new(self.x, self.y, self.z)
     }
 }
-impl From<nalgebra::SVector<f64, 3>> for Vec3 {
-    fn from(value: nalgebra::SVector<f64, 3>) -> Self {
+impl From<nalgebra::Vector3<f64>> for Vec3 {
+    fn from(value: nalgebra::Vector3<f64>) -> Self {
         Vec3 {
             x: value.x,
             y: value.y,
@@ -69,7 +67,35 @@ impl From<nalgebra::SVector<f64, 3>> for Vec3 {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+impl Into<nalgebra::Translation3<f64>> for Vec3 {
+    fn into(self) -> nalgebra::Translation3<f64> {
+        nalgebra::Translation {
+            vector: self.into(),
+        }
+    }
+}
+impl From<nalgebra::Translation3<f64>> for Vec3 {
+    fn from(value: nalgebra::Translation3<f64>) -> Self {
+        value.vector.into()
+    }
+}
+
+impl Vec3 {
+    pub fn into_vector(self) -> nalgebra::Vector3<f64> {
+        self.into()
+    }
+    pub fn from_vector(vector: nalgebra::Vector3<f64>) -> Vec3 {
+        vector.into()
+    }
+    pub fn into_translation(self) -> nalgebra::Translation3<f64> {
+        self.into()
+    }
+    pub fn from_translation(tran: nalgebra::Translation3<f64>) -> Vec3 {
+        tran.into()
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
 pub struct Vec4 {
     pub x: f64,
     pub y: f64,
@@ -77,40 +103,128 @@ pub struct Vec4 {
     pub w: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+impl Into<nalgebra::SVector<f64, 4>> for Vec4 {
+    fn into(self) -> nalgebra::SVector<f64, 4> {
+        nalgebra::SVector::<f64, 4>::new(self.x, self.y, self.z, self.w)
+    }
+}
+impl From<nalgebra::SVector<f64, 4>> for Vec4 {
+    fn from(value: nalgebra::SVector<f64, 4>) -> Self {
+        Vec4 {
+            x: value.x,
+            y: value.y,
+            z: value.z,
+            w: value.w,
+        }
+    }
+}
+
+impl Into<nalgebra::Quaternion<f64>> for Vec4 {
+    fn into(self) -> nalgebra::Quaternion<f64> {
+        nalgebra::Quaternion::new(self.w, self.x, self.y, self.z)
+    }
+}
+impl Into<nalgebra::UnitQuaternion<f64>> for Vec4 {
+    fn into(self) -> nalgebra::UnitQuaternion<f64> {
+        nalgebra::UnitQuaternion::from_quaternion(self.into())
+    }
+}
+impl From<nalgebra::Quaternion<f64>> for Vec4 {
+    fn from(value: nalgebra::Quaternion<f64>) -> Self {
+        Vec4 {
+            x: value.i,
+            y: value.j,
+            z: value.k,
+            w: value.w,
+        }
+    }
+}
+impl From<nalgebra::UnitQuaternion<f64>> for Vec4 {
+    fn from(value: nalgebra::UnitQuaternion<f64>) -> Self {
+        Vec4 {
+            x: value.i,
+            y: value.j,
+            z: value.k,
+            w: value.w,
+        }
+    }
+}
+
+impl Vec4 {
+    pub fn into_quaternion(self) -> nalgebra::Quaternion<f64> {
+        self.into()
+    }
+    pub fn from_quaternion(quat: nalgebra::Quaternion<f64>) -> Vec4 {
+        quat.into()
+    }
+    pub fn into_unit_quaternion(self) -> nalgebra::UnitQuaternion<f64> {
+        self.into()
+    }
+    pub fn from_unit_quaternion(unit_quat: nalgebra::UnitQuaternion<f64>) -> Vec4 {
+        unit_quat.into()
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
 pub struct Twist {
     pub linear: Vec3,
     pub angular: Vec3,
 }
 
 #[inovo_msg("commander_msgs/CartesianJogDemand")]
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
 pub struct CartesianJogDemand {
     pub twist: Twist,
 }
 
 #[inovo_msg("commander_msgs/SpeedStamped")]
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
 pub struct SpeedStamped {
     pub speed: Speed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
 pub struct Speed {
     pub linear: f64,
     pub angular: f64,
 }
 
 #[inovo_msg("geometry_msgs/PoseStamped")]
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
 pub struct PoseStamped {
     pub pose: Pose,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq)]
 pub struct Pose {
-    position: Vec3,
-    orientation: Vec4,
+    pub position: Vec3,
+    pub orientation: Vec4,
+}
+
+impl Into<nalgebra::Isometry3<f64>> for Pose {
+    fn into(self) -> nalgebra::Isometry3<f64> {
+        nalgebra::Isometry {
+            rotation: self.orientation.into(),
+            translation: self.position.into(),
+        }
+    }
+}
+impl From<nalgebra::Isometry3<f64>> for Pose {
+    fn from(value: nalgebra::Isometry3<f64>) -> Self {
+        Pose {
+            position: value.translation.into(),
+            orientation: value.rotation.into(),
+        }
+    }
+}
+
+impl Pose {
+    pub fn into_isometry(self) -> nalgebra::Isometry3<f64> {
+        self.into()
+    }
+    pub fn from_isometry(iso: nalgebra::Isometry3<f64>) -> Pose {
+        iso.into()
+    }
 }
 
 #[inovo_msg("sensor_msgs/JointState")]
@@ -125,38 +239,38 @@ pub struct JointState {
 #[inovo_msg("psu_msgs/Status")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct PowerState {
-    current: f64,
-    fault_code: u8,
-    state: String,
-    voltage: f64,
+    pub current: f64,
+    pub fault_code: u8,
+    pub state: String,
+    pub voltage: f64,
 }
 
 #[inovo_msg("arm_msgs/RobotState")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct RobotState {
-    can_enable: bool,
-    driver_state: String,
-    drives_powered: bool,
-    speed_limited: bool,
+    pub can_enable: bool,
+    pub driver_state: String,
+    pub drives_powered: bool,
+    pub speed_limited: bool,
 }
 
 #[inovo_msg("psu_msgs/SafetyCircuitState")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct SafetyCircuotState {
-    active: bool,
-    circuit_complete: bool,
+    pub active: bool,
+    pub circuit_complete: bool,
 }
 
 #[inovo_msg("commander_msgs/RuntimeState")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct RuntimeState {
-    active_blocks: Vec<String>,
-    current_block_progress: f64,
-    state: u8,
-    variables: Vec<Variable>,
+    pub active_blocks: Vec<String>,
+    pub current_block_progress: f64,
+    pub state: u8,
+    pub variables: Vec<Variable>,
 }
 
-#[derive(Debug, Clone, Deserialize, Default, PartialEq, Serialize_repr)]
+#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Serialize_repr)]
 #[repr(u8)]
 pub enum RuntimeStatus {
     #[default]
@@ -184,22 +298,22 @@ pub struct ArmState {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ArmJointState {
-    age: u64,
-    current: f64,
-    drive_temp: f64,
-    ff_torque: f64,
+    pub age: u64,
+    pub current: f64,
+    pub drive_temp: f64,
+    pub ff_torque: f64,
 
-    joint_temp: f64,
-    motor_temp: f64,
-    output_gain: f64,
-    position: f64,
+    pub joint_temp: f64,
+    pub motor_temp: f64,
+    pub output_gain: f64,
+    pub position: f64,
 
-    state: u8,
-    status: u64,
+    pub state: u8,
+    pub status: u64,
 
-    target_position: f64,
-    torque: f64,
-    velocity: f64,
+    pub target_position: f64,
+    pub torque: f64,
+    pub velocity: f64,
 }
 
 #[inovo_msg("std_srvs/Trigger")]
@@ -216,7 +330,7 @@ impl RosServiceType for Trigger {
 #[inovo_msg("commander_msgs/RunSequence")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct RunSequence {
-    procedure_name: String,
+    pub procedure_name: String,
 }
 
 impl RosServiceType for RunSequence {
@@ -229,8 +343,8 @@ impl RosServiceType for RunSequence {
 #[inovo_msg("")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Response {
-    message: String,
-    success: bool,
+    pub message: String,
+    pub success: bool,
 }
 
 #[async_trait::async_trait]
@@ -362,7 +476,6 @@ impl InovoRosBridge for ClientHandle {
         &self,
         topic: impl AsRef<str> + Send,
     ) -> Subscriber<InovoMessage<T>> {
-        println!("subscribing: {} - {}", topic.as_ref(), T::ROS_TYPE_NAME);
         self.subscribe(topic.as_ref()).await.unwrap()
     }
     async fn call_inovo<S: RosServiceType>(

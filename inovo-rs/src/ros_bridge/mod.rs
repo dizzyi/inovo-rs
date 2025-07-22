@@ -267,11 +267,11 @@ pub struct SafetyCircuotState {
 pub struct RuntimeState {
     pub active_blocks: Vec<String>,
     pub current_block_progress: f64,
-    pub state: u8,
+    pub state: RuntimeStatus,
     pub variables: Vec<Variable>,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Serialize_repr)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize_repr)]
 #[repr(u8)]
 pub enum RuntimeStatus {
     #[default]

@@ -282,18 +282,18 @@ pub enum RuntimeStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Variable {
-    name: String,
+    pub name: String,
     #[serde(rename = "type")]
-    dtype: String,
-    value: String,
+    pub dtype: String,
+    pub value: String,
 }
 
 #[inovo_msg("arm_msgs/ArmState")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ArmState {
-    enabled: bool,
-    state: u8,
-    joint_states: Vec<ArmJointState>,
+    pub enabled: bool,
+    pub state: u8,
+    pub joint_states: Vec<ArmJointState>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]

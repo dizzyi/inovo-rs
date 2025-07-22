@@ -320,29 +320,29 @@ pub struct ArmJointState {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Trigger {}
 
-impl RosServiceType for Trigger {
-    type Request = Trigger;
-    type Response = Response;
-    const ROS_SERVICE_NAME: &'static str = "";
-    const MD5SUM: &'static str = "";
-}
-
 #[inovo_msg("commander_msgs/RunSequence")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct RunSequence {
     pub procedure_name: String,
 }
 
+impl RosServiceType for Trigger {
+    type Request = Trigger;
+    type Response = InovoResponse;
+    const ROS_SERVICE_NAME: &'static str = "";
+    const MD5SUM: &'static str = "";
+}
+
 impl RosServiceType for RunSequence {
     type Request = RunSequence;
-    type Response = Response;
+    type Response = InovoResponse;
     const ROS_SERVICE_NAME: &'static str = "";
     const MD5SUM: &'static str = "";
 }
 
 #[inovo_msg("")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct Response {
+pub struct InovoResponse {
     pub message: String,
     pub success: bool,
 }
@@ -365,11 +365,11 @@ pub trait InovoRosBridge {
         topic: impl AsRef<str> + Send,
     ) -> Subscriber<InovoMessage<T>>;
 
-    async fn call_inovo<S: RosServiceType>(
+    async fn call_inovo<S: RosServiceType<Response = InovoResponse>>(
         &self,
         service: impl AsRef<str> + Send,
         args: S::Request,
-    ) -> S::Response;
+    ) -> Result<(), String>;
 
     async fn tcp_speed(&self) -> Subscriber<InovoMessage<SpeedStamped>> {
         self.subscribe_inovo(Self::TOPIC_TCP_SPEED).await
@@ -405,58 +405,61 @@ pub trait InovoRosBridge {
     // Service
 
     // psu
-    async fn safe_stop_reset(&self) -> Response {
+    async fn safe_stop_reset(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/psu/safe_stop/reset", Trigger {})
             .await
     }
-    async fn estop_reset(&self) -> Response {
+    async fn estop_reset(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/psu/estop/reset", Trigger {})
             .await
     }
-    async fn power_on(&self) -> Response {
+    async fn power_on(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/psu/enable", Trigger {}).await
     }
-    async fn power_off(&self) -> Response {
+    async fn power_off(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/psu/disable", Trigger {}).await
     }
 
     // robot
-    async fn arm_enable(&self) -> Response {
+    async fn arm_enable(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/robot/enable", Trigger {})
             .await
     }
-    async fn arm_disable(&self) -> Response {
+    async fn arm_disable(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/robot/disable", Trigger {})
             .await
     }
 
     // sequence
-    async fn sequence_start(&self) -> Response {
+    async fn sequence_start(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/sequence/start", Trigger {})
             .await
     }
-    async fn sequence_stop(&self) -> Response {
+    async fn sequence_stop(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/sequence/stop", Trigger {})
             .await
     }
-    async fn sequence_pause(&self) -> Response {
+    async fn sequence_pause(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/sequence/pause", Trigger {})
             .await
     }
-    async fn sequence_step(&self) -> Response {
+    async fn sequence_step(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/sequence/step", Trigger {})
             .await
     }
-    async fn sequence_debug(&self) -> Response {
+    async fn sequence_debug(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/sequence/debug", Trigger {})
             .await
     }
-    async fn sequence_continue(&self) -> Response {
+    async fn sequence_continue(&self) -> Result<(), String> {
         self.call_inovo::<Trigger>("/sequence/continue", Trigger {})
             .await
     }
 
-    async fn sequence_function(&self, procedure_name: impl Into<String> + Send) -> Response {
+    async fn sequence_function(
+        &self,
+        procedure_name: impl Into<String> + Send,
+    ) -> Result<(), String> {
         self.call_inovo::<RunSequence>(
             "/sequence/start",
             RunSequence {
@@ -478,14 +481,21 @@ impl InovoRosBridge for ClientHandle {
     ) -> Subscriber<InovoMessage<T>> {
         self.subscribe(topic.as_ref()).await.unwrap()
     }
-    async fn call_inovo<S: RosServiceType>(
+    async fn call_inovo<S: RosServiceType<Response = InovoResponse>>(
         &self,
         service: impl AsRef<str> + Send,
         args: S::Request,
-    ) -> S::Response {
-        self.call_service::<S>(service.as_ref(), args)
+    ) -> Result<(), String> {
+        let res = self
+            .call_service::<S>(service.as_ref(), args)
             .await
-            .unwrap()
+            .unwrap();
+
+        if res.success {
+            Ok(())
+        } else {
+            Err(res.message)
+        }
     }
     async fn jog_pub(&self) -> Publisher<CartesianJogDemand> {
         self.advertise(Self::TOPIC_CARTESIAN_JOG).await.unwrap()

@@ -8,6 +8,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_repr::*;
 
 use inovo_rs_macro::*;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct InovoMessage<T: Clone + Debug> {
@@ -328,24 +329,43 @@ pub struct RunSequence {
 
 impl RosServiceType for Trigger {
     type Request = Trigger;
-    type Response = InovoResponse;
+    type Response = InovoRosResponse;
     const ROS_SERVICE_NAME: &'static str = "";
     const MD5SUM: &'static str = "";
 }
 
 impl RosServiceType for RunSequence {
     type Request = RunSequence;
-    type Response = InovoResponse;
+    type Response = InovoRosResponse;
     const ROS_SERVICE_NAME: &'static str = "";
     const MD5SUM: &'static str = "";
 }
 
 #[inovo_msg("")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct InovoResponse {
-    pub message: String,
+pub struct InovoRosResponse {
+    pub message: InovoRosErrorMessage,
     pub success: bool,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, thiserror::Error)]
+pub struct InovoRosErrorMessage(pub String);
+
+impl std::fmt::Display for InovoRosErrorMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Inovo Error Message {{ {} }}", self.0)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InovoRosError {
+    #[error("inovo error : {0}")]
+    InovoError(#[from] InovoRosErrorMessage),
+    #[error(transparent)]
+    Roslibrust(#[from] roslibrust::Error),
+}
+
+type InovoRosResult<T> = Result<T, InovoRosError>;
 
 #[async_trait::async_trait]
 pub trait InovoRosBridge {
@@ -363,95 +383,97 @@ pub trait InovoRosBridge {
     async fn subscribe_inovo<T: RosMessageType>(
         &self,
         topic: impl AsRef<str> + Send,
-    ) -> Subscriber<InovoMessage<T>>;
+    ) -> InovoRosResult<Subscriber<InovoMessage<T>>>;
 
-    async fn call_inovo<S: RosServiceType<Response = InovoResponse>>(
+    async fn call_inovo<S: RosServiceType<Response = InovoRosResponse>>(
         &self,
         service: impl AsRef<str> + Send,
         args: S::Request,
-    ) -> Result<(), String>;
+    ) -> InovoRosResult<()>;
 
-    async fn tcp_speed(&self) -> Subscriber<InovoMessage<SpeedStamped>> {
+    async fn tcp_speed(&self) -> InovoRosResult<Subscriber<InovoMessage<SpeedStamped>>> {
         self.subscribe_inovo(Self::TOPIC_TCP_SPEED).await
     }
-    async fn tcp_pose(&self) -> Subscriber<InovoMessage<PoseStamped>> {
+    async fn tcp_pose(&self) -> InovoRosResult<Subscriber<InovoMessage<PoseStamped>>> {
         self.subscribe_inovo(Self::TOPIC_TCP_POSE).await
     }
-    async fn joint_state(&self) -> Subscriber<InovoMessage<JointState>> {
+    async fn joint_state(&self) -> InovoRosResult<Subscriber<InovoMessage<JointState>>> {
         self.subscribe_inovo(Self::TOPIC_JOINT_STATE).await
     }
-    async fn power_state(&self) -> Subscriber<InovoMessage<PowerState>> {
+    async fn power_state(&self) -> InovoRosResult<Subscriber<InovoMessage<PowerState>>> {
         self.subscribe_inovo(Self::TOPIC_POWER_STATE).await
     }
-    async fn robot_state(&self) -> Subscriber<InovoMessage<RobotState>> {
+    async fn robot_state(&self) -> InovoRosResult<Subscriber<InovoMessage<RobotState>>> {
         self.subscribe_inovo(Self::TOPIC_ROBOT_STATE).await
     }
-    async fn estop_state(&self) -> Subscriber<InovoMessage<SafetyCircuotState>> {
+    async fn estop_state(&self) -> InovoRosResult<Subscriber<InovoMessage<SafetyCircuotState>>> {
         self.subscribe_inovo(Self::TOPIC_ESTOP_STATE).await
     }
-    async fn safe_stop_state(&self) -> Subscriber<InovoMessage<SafetyCircuotState>> {
+    async fn safe_stop_state(
+        &self,
+    ) -> InovoRosResult<Subscriber<InovoMessage<SafetyCircuotState>>> {
         self.subscribe_inovo(Self::TOPIC_SAFE_STOP_STATE).await
     }
-    async fn runtime_state(&self) -> Subscriber<InovoMessage<RuntimeState>> {
+    async fn runtime_state(&self) -> InovoRosResult<Subscriber<InovoMessage<RuntimeState>>> {
         self.subscribe_inovo(Self::TOPIC_RUNTIME_STATE).await
     }
-    async fn arm_state(&self) -> Subscriber<InovoMessage<ArmState>> {
+    async fn arm_state(&self) -> InovoRosResult<Subscriber<InovoMessage<ArmState>>> {
         self.subscribe_inovo(Self::TOPIC_ARM_STATE).await
     }
-    async fn jog(&self) -> Subscriber<InovoMessage<CartesianJogDemand>> {
+    async fn jog(&self) -> InovoRosResult<Subscriber<InovoMessage<CartesianJogDemand>>> {
         self.subscribe_inovo(Self::TOPIC_CARTESIAN_JOG).await
     }
 
     // Service
 
     // psu
-    async fn safe_stop_reset(&self) -> Result<(), String> {
+    async fn safe_stop_reset(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/psu/safe_stop/reset", Trigger {})
             .await
     }
-    async fn estop_reset(&self) -> Result<(), String> {
+    async fn estop_reset(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/psu/estop/reset", Trigger {})
             .await
     }
-    async fn power_on(&self) -> Result<(), String> {
+    async fn power_on(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/psu/enable", Trigger {}).await
     }
-    async fn power_off(&self) -> Result<(), String> {
+    async fn power_off(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/psu/disable", Trigger {}).await
     }
 
     // robot
-    async fn arm_enable(&self) -> Result<(), String> {
+    async fn arm_enable(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/robot/enable", Trigger {})
             .await
     }
-    async fn arm_disable(&self) -> Result<(), String> {
+    async fn arm_disable(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/robot/disable", Trigger {})
             .await
     }
 
     // sequence
-    async fn sequence_start(&self) -> Result<(), String> {
+    async fn sequence_start(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/sequence/start", Trigger {})
             .await
     }
-    async fn sequence_stop(&self) -> Result<(), String> {
+    async fn sequence_stop(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/sequence/stop", Trigger {})
             .await
     }
-    async fn sequence_pause(&self) -> Result<(), String> {
+    async fn sequence_pause(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/sequence/pause", Trigger {})
             .await
     }
-    async fn sequence_step(&self) -> Result<(), String> {
+    async fn sequence_step(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/sequence/step", Trigger {})
             .await
     }
-    async fn sequence_debug(&self) -> Result<(), String> {
+    async fn sequence_debug(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/sequence/debug", Trigger {})
             .await
     }
-    async fn sequence_continue(&self) -> Result<(), String> {
+    async fn sequence_continue(&self) -> InovoRosResult<()> {
         self.call_inovo::<Trigger>("/sequence/continue", Trigger {})
             .await
     }
@@ -459,7 +481,7 @@ pub trait InovoRosBridge {
     async fn sequence_function(
         &self,
         procedure_name: impl Into<String> + Send,
-    ) -> Result<(), String> {
+    ) -> InovoRosResult<()> {
         self.call_inovo::<RunSequence>(
             "/sequence/start",
             RunSequence {
@@ -478,23 +500,20 @@ impl InovoRosBridge for ClientHandle {
     async fn subscribe_inovo<T: RosMessageType>(
         &self,
         topic: impl AsRef<str> + Send,
-    ) -> Subscriber<InovoMessage<T>> {
-        self.subscribe(topic.as_ref()).await.unwrap()
+    ) -> InovoRosResult<Subscriber<InovoMessage<T>>> {
+        Ok(self.subscribe(topic.as_ref()).await?)
     }
-    async fn call_inovo<S: RosServiceType<Response = InovoResponse>>(
+    async fn call_inovo<S: RosServiceType<Response = InovoRosResponse>>(
         &self,
         service: impl AsRef<str> + Send,
         args: S::Request,
-    ) -> Result<(), String> {
-        let res = self
-            .call_service::<S>(service.as_ref(), args)
-            .await
-            .unwrap();
+    ) -> InovoRosResult<()> {
+        let res = self.call_service::<S>(service.as_ref(), args).await?;
 
         if res.success {
             Ok(())
         } else {
-            Err(res.message)
+            Err(res.message.into())
         }
     }
     async fn jog_pub(&self) -> Publisher<CartesianJogDemand> {

@@ -80,13 +80,13 @@ async fn main() {
     // return;
 
     {
-        let sub = client.tcp_speed().await;
+        let sub = client.tcp_speed().await.unwrap();
         for i in 0..3 {
             info!("{:#?}", sub.next().await)
         }
     }
     {
-        let sub = client.tcp_pose().await;
+        let sub = client.tcp_pose().await.unwrap();
         for i in 0..3 {
             info!("{:#?}", sub.next().await)
         }
@@ -98,37 +98,37 @@ async fn main() {
     //     }
     // }
     {
-        let sub = client.power_state().await;
+        let sub = client.power_state().await.unwrap();
         for i in 0..3 {
             info!("{:#?}", sub.next().await)
         }
     }
     {
-        let sub = client.robot_state().await;
+        let sub = client.robot_state().await.unwrap();
         for i in 0..3 {
             info!("{:#?}", sub.next().await)
         }
     }
     {
-        let sub = client.estop_state().await;
+        let sub = client.estop_state().await.unwrap();
         for i in 0..3 {
             info!("{:#?}", sub.next().await)
         }
     }
     {
-        let sub = client.safe_stop_state().await;
+        let sub = client.safe_stop_state().await.unwrap();
         for i in 0..3 {
             info!("{:#?}", sub.most_recent().await)
         }
     }
     {
-        let sub = client.runtime_state().await;
+        let sub = client.runtime_state().await.unwrap();
         for i in 0..3 {
             info!("{:#?}", sub.most_recent().await)
         }
     }
     {
-        let sub = client.arm_state().await;
+        let sub = client.arm_state().await.unwrap();
         for i in 0..3 {
             info!("{:#?}", sub.most_recent().await)
         }
@@ -232,7 +232,7 @@ async fn main() {
     {
         let client = client.clone();
         tokio::spawn(async move {
-            let sub = client.jog().await;
+            let sub = client.jog().await.unwrap();
             loop {
                 let msg = sub.next().await;
 

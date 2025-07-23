@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["inovo-rs", "inovo-rs-macro"]
+members = ["inovo-rs", "inovo-rs-macro", "inovo-cli"]
 
 [workspace.dependencies]
 tracing = "0.1.41"

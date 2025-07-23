@@ -5,6 +5,7 @@ use std::io::Read;
 use std::net;
 use std::str::FromStr;
 use tracing::{debug, error, info, warn};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Debug, Clone, Parser)]
 #[command(version, about, long_about = None)]
@@ -32,11 +33,14 @@ enum Commands {
 async fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
 
-    tracing_subscriber::fmt()
-        .without_time()
-        .with_level(true)
-        .with_target(true)
-        .with_max_level(cli.log_level)
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::fmt::layer()
+                .without_time()
+                .with_level(true)
+                .with_target(true),
+        )
+        .with(EnvFilter::builder().parse_lossy(format!("inovo_cli={}", cli.log_level)))
         .init();
 
     let Some(cmd) = cli.command else {
@@ -61,7 +65,7 @@ pub async fn revive(ip: String, user: String, password: String) -> Result<(), an
     ssh_restart(&ip, &user, &password).await?;
     info!("delaying for rcu restart");
     for i in (1..=10).rev() {
-        info!("{} . . .", i);
+        debug!("{} . . .", i);
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     ros_start(&ip).await
@@ -221,12 +225,13 @@ pub async fn ros_start_loop(
 
     info!("powering on robot");
     match client.power_on().await {
-        Ok(()) => {}
+        Ok(()) => {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        }
         Err(e) => {
             warn!("error powering robot on : {:?}", e);
         }
     }
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
     let p = power_state.most_recent().await.payload;
     if p.fault_code != 0 {

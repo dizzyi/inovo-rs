@@ -1,4 +1,4 @@
-use std::{fmt::Debug, vec};
+use std::fmt::Debug;
 
 use roslibrust::{
     rosbridge::{ClientHandle, Publisher, Subscriber},
@@ -8,7 +8,6 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_repr::*;
 
 use inovo_rs_macro::*;
-use thiserror::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct InovoMessage<T: Clone + Debug> {

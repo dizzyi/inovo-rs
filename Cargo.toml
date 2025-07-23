@@ -1,3 +1,14 @@
 [workspace]
 resolver = "2"
 members = ["inovo-rs", "inovo-rs-macro"]
+
+[workspace.dependencies]
+tracing = "0.1.41"
+serde = { version = "1.0.192", features = ["derive"] }
+serde_json = "1.0.141"
+tokio = { version = "1.46.1", features = ["full"] }
+roslibrust = { version = "0.15.0", features = ["rosbridge"] }
+nalgebra = "0.33.2"
+
+inovo-rs-macro = { path = "./inovo-rs-macro" }
+inovo-rs = { path = "./inovo-rs" }

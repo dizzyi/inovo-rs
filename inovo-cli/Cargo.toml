@@ -1,0 +1,18 @@
+[package]
+name = "inovo-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+roslibrust = { workspace = true }
+
+clap = { version = "4.5.41", features = ["derive"] }
+
+anyhow = { version = "1.0.98" }
+
+ssh2 = { version = "0.9.5" }
+
+inovo-rs = { workspace = true }

@@ -74,13 +74,16 @@ impl Robot {
 
         let mut listener = socket::Listener::new(port)?;
 
-        let response = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            roslibrust::rosbridge::ClientHandle::new(host.clone())
-                .await
-                .unwrap()
-                .sequence_function("iva")
-                .await
-        });
+        tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async {
+                roslibrust::rosbridge::ClientHandle::new(host.clone())
+                    .await
+                    .unwrap()
+                    .sequence_function("iva")
+                    .await
+            })
+            .unwrap();
 
         let stream = listener.accept()?;
 

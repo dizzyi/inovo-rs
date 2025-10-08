@@ -14,8 +14,20 @@ roslibrust = { workspace = true }
 
 clap = { version = "4.5.41", features = ["derive"] }
 
+local-ip-address = { version = "0.6.5" }
+
 anyhow = { version = "1.0.98" }
 
 ssh2 = { version = "0.9.5" }
 
 inovo-rs = { workspace = true }
+
+axum = { version = "0.8.4", features = ["macros"] }
+tower-http = { version = "0.6.6", features = ["trace", "cors"] }
+rust-embed = "8.7.2"
+axum-embed = "0.1.0"
+
+utoipa = "5.4.0"
+utoipa-axum = "0.2"
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }

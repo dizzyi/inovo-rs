@@ -2,13 +2,23 @@ use inovo_rs::ros_bridge::*;
 use roslibrust::rosbridge::{ClientHandle, ClientHandleOptions, Subscriber};
 use std::io::Read;
 use std::net;
+#[cfg(target_os = "windows")]
+use std::net::IpAddr;
 use std::str::FromStr;
+#[cfg(target_os = "windows")]
+use tracing::instrument;
 use tracing::{debug, info, warn};
 
 #[tracing::instrument(skip_all)]
-pub async fn revive(ip: String, user: String, password: String) -> Result<(), anyhow::Error> {
-    info!("Reviving PSU @ <{}>", ip);
-    let ip = net::IpAddr::from_str(&ip)?;
+pub async fn revive(host: String, user: String, password: String) -> Result<(), anyhow::Error> {
+    info!("Reviving PSU @ <{}>", host);
+    let ip = match net::IpAddr::from_str(&host) {
+        Ok(ip) => ip,
+        Err(e) => {
+            warn!("provided ip is not in canonial form");
+            ping_to_resolve(host).await?
+        }
+    };
     ssh_restart(&ip, &user, &password).await?;
     info!("delaying for rcu restart");
     for i in (1..=10).rev() {
@@ -16,6 +26,39 @@ pub async fn revive(ip: String, user: String, password: String) -> Result<(), an
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     ros_start(&ip).await
+}
+
+#[cfg(target_os = "windows")]
+#[instrument(skip_all)]
+pub async fn ping_to_resolve(ip: impl Into<String>) -> anyhow::Result<IpAddr> {
+    let output = tokio::process::Command::new("ping")
+        .arg("-a")
+        .arg("-w")
+        .arg("1000")
+        .arg("-n")
+        .arg("1")
+        .arg(ip.into())
+        .output()
+        .await?
+        .stdout ;
+
+    let output_string = String::from_utf8_lossy(&output);
+
+
+    if output_string.contains("timed out") {
+        Err(anyhow::anyhow!("Ping Timed Out"))
+    } else if output_string.contains("could not find host") {
+        Err(anyhow::anyhow!("Could Not Find Host"))
+    } else {
+        Ok(output_string
+            .split_ascii_whitespace()
+            .skip(2)
+            .next()
+            .ok_or(anyhow::anyhow!("unexpected result from ping"))?
+            .replace(&['[', ']'], "")
+            .to_owned()
+            .parse()?)
+    }
 }
 
 #[tracing::instrument(skip_all)]

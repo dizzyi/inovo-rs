@@ -150,7 +150,7 @@ async fn ros_ping(ip: IpAddr) -> anyhow::Result<IpAddr> {
     let addr = SocketAddr::new(ip.clone(), 9090);
     let url = format!("ws://{}", addr);
     trace!("connecting rosbridge <{}>", url);
-    let opts = ClientHandleOptions::new(url).timeout(std::time::Duration::from_secs(5));
+    let opts = ClientHandleOptions::new(url).timeout(std::time::Duration::from_secs(10));
     let client = ClientHandle::new_with_options(opts).await?;
 
     let arm_state = client.arm_state().await?;

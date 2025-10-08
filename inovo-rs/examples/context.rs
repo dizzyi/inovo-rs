@@ -54,8 +54,7 @@ impl Context<ContextMachine> for Context2 {
 fn do_some_stuff() {}
 
 fn main() {
-        tracing_subscriber::fmt::init();
-
+    tracing_subscriber::fmt::init();
 
     let mut context_machine = ContextMachine {};
 

@@ -1,9 +1,16 @@
-use inovo_rs::ros_bridge::*;
+use inovo_rs::ros_bridge::{
+    commander_msgs::CartesianJogDemand,
+    geometry_msgs::{Twist, Vector3},
+    *,
+};
 
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
-use roslibrust::{rosbridge::ClientHandle, RosMessageType};
+use roslibrust::{
+    rosbridge::{ClientHandle, ClientHandleOptions},
+    RosMessageType,
+};
 
 use tracing::info;
 
@@ -31,10 +38,33 @@ async fn main() {
     info!("{}", SpeedStamped::ROS_TYPE_NAME);
     info!("{}", PoseStamped::ROS_TYPE_NAME);
 
-    let client = roslibrust::rosbridge::ClientHandle::new("ws://192.168.1.127:9090")
-        .await
-        .unwrap();
+    let client = roslibrust::rosbridge::ClientHandle::new_with_options(
+        ClientHandleOptions::new("ws://192.168.1.122:9090")
+            .timeout(std::time::Duration::from_secs(5)),
+    )
+    .await
+    .unwrap();
     info!("ClientHandle connected");
+
+    {
+        let sub = client
+            .subscribe::<std_msgs::Float64MultiArray>("/robot/joint_velocity/cmd")
+            .await
+            .unwrap();
+
+        println!("subscribed");
+
+        for i in 0..3 {
+            println!("{:#?}", sub.next().await);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&sub.most_recent().await).unwrap()
+            )
+        }
+    }
+
+    return;
+
     // {
     //     let sub = client
     //         .subscribe::<InovoMessage<Res>>(ClientHandle::TOPIC_TCP_SPEED)
@@ -151,12 +181,13 @@ async fn main() {
     for i in 0..1000 {
         jog.publish(&CartesianJogDemand {
             twist: Twist {
-                linear: Vec3 {
+                linear: Vector3 {
                     z: 0.01,
                     ..Default::default()
                 },
                 ..Default::default()
             },
+            ..Default::default()
         })
         .await
         .unwrap();
@@ -165,12 +196,13 @@ async fn main() {
     for i in 0..1000 {
         jog.publish(&CartesianJogDemand {
             twist: Twist {
-                linear: Vec3 {
+                linear: Vector3 {
                     z: -0.01,
                     ..Default::default()
                 },
                 ..Default::default()
             },
+            ..Default::default()
         })
         .await
         .unwrap();
@@ -242,35 +274,28 @@ async fn main() {
     }
 
     let pubisher = client
-        .advertise::<InovoMessage<CartesianJogDemand>>("/default_move_group/cartesian_jog")
+        .advertise::<CartesianJogDemand>("/default_move_group/cartesian_jog")
         .await
         .unwrap();
 
     for _ in 0..1000 {
         // info!("a");
         pubisher
-            .publish(&InovoMessage {
-                header: InovoHeader {
-                    frame_id: "".to_string(),
-                    seq: 0,
-                    stamp: Stamp { nsecs: 0, secs: 0 },
-                },
-                tcp_id: "".to_string(),
-                payload: CartesianJogDemand {
-                    twist: Twist {
-                        linear: Vec3 {
-                            x: 0.0,
-                            y: 0.0,
-                            z: 0.01,
-                        },
-                        angular: Vec3 {
-                            x: 0.0,
-                            y: 0.0,
-                            z: 0.0,
-                            // w: 0.0,
-                        },
+            .publish(&CartesianJogDemand {
+                twist: Twist {
+                    linear: Vector3 {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.01,
+                    },
+                    angular: Vector3 {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0,
+                        // w: 0.0,
                     },
                 },
+                ..Default::default()
             })
             .await
             .unwrap();
@@ -279,28 +304,21 @@ async fn main() {
     for _ in 0..1000 {
         // info!("b");
         pubisher
-            .publish(&InovoMessage {
-                header: InovoHeader {
-                    frame_id: "".to_string(),
-                    seq: 0,
-                    stamp: Stamp { nsecs: 0, secs: 0 },
-                },
-                tcp_id: "".to_string(),
-                payload: CartesianJogDemand {
-                    twist: Twist {
-                        linear: Vec3 {
-                            x: 0.0,
-                            y: 0.0,
-                            z: -0.01,
-                        },
-                        angular: Vec3 {
-                            x: 0.0,
-                            y: 0.0,
-                            z: 0.0,
-                            // w: 0.0,
-                        },
+            .publish(&CartesianJogDemand {
+                twist: Twist {
+                    linear: Vector3 {
+                        x: 0.0,
+                        y: 0.0,
+                        z: -0.01,
+                    },
+                    angular: Vector3 {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0,
+                        // w: 0.0,
                     },
                 },
+                ..Default::default()
             })
             .await
             .unwrap();

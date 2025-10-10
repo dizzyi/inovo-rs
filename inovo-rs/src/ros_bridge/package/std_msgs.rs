@@ -140,7 +140,7 @@ pub struct MultiArrayLayout {
     pub dim: Vec<MultiArrayDimension>,
 }
 
-#[inovo_msg("std_msgs","String")]
+#[inovo_msg("std_msgs", "String")]
 #[derive(Deref, DerefMut)]
 pub struct ROSString {
     data: String,

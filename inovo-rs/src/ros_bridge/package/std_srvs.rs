@@ -5,6 +5,11 @@ use serde::{Deserialize, Serialize};
 use inovo_rs_macro::*;
 
 #[inovo_msg("std_srvs")]
+pub struct ResponseBool {
+    pub success: bool,
+}
+
+#[inovo_msg("std_srvs")]
 pub struct Response {
     pub success: bool,
     pub message: String,

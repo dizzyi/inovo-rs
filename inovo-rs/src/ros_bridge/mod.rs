@@ -1,261 +1,26 @@
 use std::fmt::Debug;
 
-pub mod commander_msgs;
-pub mod geometry_msgs;
-pub mod std_msgs;
-pub mod std_srvs;
+pub mod package;
+pub mod topic;
 
+pub use package::*;
+pub use topic::*;
+
+use arm_msgs::*;
 use commander_msgs::*;
+use geometry_msgs::*;
+use psu_msgs::*;
 use std_srvs::*;
-//
-use roslibrust::{
-    rosbridge::{ClientHandle, Publisher, Subscriber},
-    RosMessageType, RosServiceType,
-};
+
+use roslibrust::rosbridge::{ClientHandle, Publisher, Subscriber};
+use roslibrust::{RosMessageType, RosServiceType};
+
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_repr::*;
 
 use inovo_rs_macro::*;
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct Vec3 {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-}
 
-impl Into<nalgebra::Vector3<f64>> for Vec3 {
-    fn into(self) -> nalgebra::Vector3<f64> {
-        nalgebra::Vector3::<f64>::new(self.x, self.y, self.z)
-    }
-}
-impl From<nalgebra::Vector3<f64>> for Vec3 {
-    fn from(value: nalgebra::Vector3<f64>) -> Self {
-        Vec3 {
-            x: value.x,
-            y: value.y,
-            z: value.z,
-        }
-    }
-}
-
-impl Into<nalgebra::Translation3<f64>> for Vec3 {
-    fn into(self) -> nalgebra::Translation3<f64> {
-        nalgebra::Translation {
-            vector: self.into(),
-        }
-    }
-}
-impl From<nalgebra::Translation3<f64>> for Vec3 {
-    fn from(value: nalgebra::Translation3<f64>) -> Self {
-        value.vector.into()
-    }
-}
-
-impl Vec3 {
-    pub fn into_vector(self) -> nalgebra::Vector3<f64> {
-        self.into()
-    }
-    pub fn from_vector(vector: nalgebra::Vector3<f64>) -> Vec3 {
-        vector.into()
-    }
-    pub fn into_translation(self) -> nalgebra::Translation3<f64> {
-        self.into()
-    }
-    pub fn from_translation(tran: nalgebra::Translation3<f64>) -> Vec3 {
-        tran.into()
-    }
-}
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct Vec4 {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-    pub w: f64,
-}
-
-impl Into<nalgebra::SVector<f64, 4>> for Vec4 {
-    fn into(self) -> nalgebra::SVector<f64, 4> {
-        nalgebra::SVector::<f64, 4>::new(self.x, self.y, self.z, self.w)
-    }
-}
-impl From<nalgebra::SVector<f64, 4>> for Vec4 {
-    fn from(value: nalgebra::SVector<f64, 4>) -> Self {
-        Vec4 {
-            x: value.x,
-            y: value.y,
-            z: value.z,
-            w: value.w,
-        }
-    }
-}
-
-impl Into<nalgebra::Quaternion<f64>> for Vec4 {
-    fn into(self) -> nalgebra::Quaternion<f64> {
-        nalgebra::Quaternion::new(self.w, self.x, self.y, self.z)
-    }
-}
-impl Into<nalgebra::UnitQuaternion<f64>> for Vec4 {
-    fn into(self) -> nalgebra::UnitQuaternion<f64> {
-        nalgebra::UnitQuaternion::from_quaternion(self.into())
-    }
-}
-impl From<nalgebra::Quaternion<f64>> for Vec4 {
-    fn from(value: nalgebra::Quaternion<f64>) -> Self {
-        Vec4 {
-            x: value.i,
-            y: value.j,
-            z: value.k,
-            w: value.w,
-        }
-    }
-}
-impl From<nalgebra::UnitQuaternion<f64>> for Vec4 {
-    fn from(value: nalgebra::UnitQuaternion<f64>) -> Self {
-        Vec4 {
-            x: value.i,
-            y: value.j,
-            z: value.k,
-            w: value.w,
-        }
-    }
-}
-
-impl Vec4 {
-    pub fn into_quaternion(self) -> nalgebra::Quaternion<f64> {
-        self.into()
-    }
-    pub fn from_quaternion(quat: nalgebra::Quaternion<f64>) -> Vec4 {
-        quat.into()
-    }
-    pub fn into_unit_quaternion(self) -> nalgebra::UnitQuaternion<f64> {
-        self.into()
-    }
-    pub fn from_unit_quaternion(unit_quat: nalgebra::UnitQuaternion<f64>) -> Vec4 {
-        unit_quat.into()
-    }
-}
-
-#[inovo_msg("commander_msgs")]
-pub struct SpeedStamped {
-    pub speed: Speed,
-}
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct Speed {
-    pub linear: f64,
-    pub angular: f64,
-}
-
-#[inovo_msg("geometry_msgs")]
-pub struct PoseStamped {
-    pub pose: Pose,
-}
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct Pose {
-    pub position: Vec3,
-    pub orientation: Vec4,
-}
-
-impl Into<nalgebra::Isometry3<f64>> for Pose {
-    fn into(self) -> nalgebra::Isometry3<f64> {
-        nalgebra::Isometry {
-            rotation: self.orientation.into(),
-            translation: self.position.into(),
-        }
-    }
-}
-impl From<nalgebra::Isometry3<f64>> for Pose {
-    fn from(value: nalgebra::Isometry3<f64>) -> Self {
-        Pose {
-            position: value.translation.into(),
-            orientation: value.rotation.into(),
-        }
-    }
-}
-
-impl Pose {
-    pub fn into_isometry(self) -> nalgebra::Isometry3<f64> {
-        self.into()
-    }
-    pub fn from_isometry(iso: nalgebra::Isometry3<f64>) -> Pose {
-        iso.into()
-    }
-}
-
-#[inovo_msg("sensor_msgs")]
-pub struct JointState {
-    pub effort: Vec<f64>,
-    pub name: Vec<String>,
-    pub position: Vec<f64>,
-    pub velocity: Vec<f64>,
-}
-
-#[inovo_msg("psu_msgs")]
-pub struct PowerState {
-    pub current: f64,
-    pub fault_code: u8,
-    pub state: String,
-    pub voltage: f64,
-}
-
-#[inovo_msg("arm_msgs")]
-pub struct RobotState {
-    pub can_enable: bool,
-    pub driver_state: String,
-    pub drives_powered: bool,
-    pub speed_limited: bool,
-}
-
-#[inovo_msg("psu_msgs")]
-pub struct SafetyCircuotState {
-    pub active: bool,
-    pub circuit_complete: bool,
-}
-
-#[inovo_msg("arm_msgs")]
-pub struct ArmState {
-    pub enabled: bool,
-    pub state: u8,
-    pub joint_states: Vec<ArmJointState>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct ArmJointState {
-    pub age: u64,
-    pub current: f64,
-    pub drive_temp: f64,
-    pub ff_torque: f64,
-
-    pub joint_temp: f64,
-    pub motor_temp: f64,
-    pub output_gain: f64,
-    pub position: f64,
-
-    pub state: u8,
-    pub status: u64,
-
-    pub target_position: f64,
-    pub torque: f64,
-    pub velocity: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, thiserror::Error)]
-pub struct InovoRosErrorMessage(pub String);
-
-impl std::fmt::Display for InovoRosErrorMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Inovo Error Message {{ {} }}", self.0)
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum InovoRosError {
-    #[error("inovo error : {0}")]
-    InovoError(#[from] InovoRosErrorMessage),
-    #[error(transparent)]
-    Roslibrust(#[from] roslibrust::Error),
-}
-
-type InovoRosResult<T> = Result<T, InovoRosError>;
+type InovoRosResult<T> = Result<T, roslibrust::Error>;
 
 #[async_trait::async_trait]
 pub trait InovoRosBridge {
@@ -290,16 +55,16 @@ pub trait InovoRosBridge {
     async fn joint_state(&self) -> InovoRosResult<Subscriber<JointState>> {
         self.subscribe_inovo(Self::TOPIC_JOINT_STATE).await
     }
-    async fn power_state(&self) -> InovoRosResult<Subscriber<PowerState>> {
+    async fn power_state(&self) -> InovoRosResult<Subscriber<psu_msgs::Status>> {
         self.subscribe_inovo(Self::TOPIC_POWER_STATE).await
     }
     async fn robot_state(&self) -> InovoRosResult<Subscriber<RobotState>> {
         self.subscribe_inovo(Self::TOPIC_ROBOT_STATE).await
     }
-    async fn estop_state(&self) -> InovoRosResult<Subscriber<SafetyCircuotState>> {
+    async fn estop_state(&self) -> InovoRosResult<Subscriber<SafetyCircuitState>> {
         self.subscribe_inovo(Self::TOPIC_ESTOP_STATE).await
     }
-    async fn safe_stop_state(&self) -> InovoRosResult<Subscriber<SafetyCircuotState>> {
+    async fn safe_stop_state(&self) -> InovoRosResult<Subscriber<SafetyCircuitState>> {
         self.subscribe_inovo(Self::TOPIC_SAFE_STOP_STATE).await
     }
     async fn runtime_state(&self) -> InovoRosResult<Subscriber<RuntimeState>> {
@@ -397,13 +162,7 @@ impl InovoRosBridge for ClientHandle {
         service: impl AsRef<str> + Send,
         args: S::Request,
     ) -> InovoRosResult<S::Response> {
-        let res = self.call_service::<S>(service.as_ref(), args).await?;
-        // if res.success {
-        //     Ok(())
-        // } else {
-        //     Err(res.message.into())
-        // }
-        Ok(res)
+        self.call_service::<S>(service.as_ref(), args).await
     }
     async fn jog_pub(&self) -> Publisher<CartesianJogDemand> {
         self.advertise(Self::TOPIC_CARTESIAN_JOG).await.unwrap()

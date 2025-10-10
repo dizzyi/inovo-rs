@@ -11,7 +11,7 @@ use crate::ros_bridge::{
 };
 
 //=======================================
-// Topic
+// Topics
 //=======================================
 
 #[inovo_msg("commander_msgs")]
@@ -32,7 +32,7 @@ pub struct Blockly {
 #[inovo_msg("commander_msgs")]
 pub struct CartesianJogDemand {
     pub header: Header,
-    pub twist: super::geometry_msgs::Twist, 
+    pub twist: super::geometry_msgs::Twist,
     pub tcp_id: String,
 }
 
@@ -251,11 +251,10 @@ pub struct RunSequence {
 #[inovo_msg("commander_msgs")]
 #[inovo_srv(Response)]
 pub struct SetVariable {
-    pub name:String,
+    pub name: String,
     pub value: String,
 }
 
 // TODO UpdateSavedConfiguration
 
 // TODO Upload
-

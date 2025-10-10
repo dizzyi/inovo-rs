@@ -1,8 +1,4 @@
-use inovo_rs::ros_bridge::{
-    commander_msgs::CartesianJogDemand,
-    geometry_msgs::{Twist, Vector3},
-    *,
-};
+use inovo_rs::ros_bridge::{commander_msgs::*, geometry_msgs::*, *};
 
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
@@ -18,26 +14,6 @@ use tracing::info;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    // let msg = InovoMessage {
-    //     header: InovoHeader {
-    //         frame_id: "s".to_string(),
-    //         seq: 12,
-    //         stamp: Stamp {
-    //             nsecs: 10,
-    //             secs: 10,
-    //         },
-    //     },
-    //     tcp_id: "".to_string(),
-    //     payload: PoseStamped::default(),
-    // };
-
-    // info!("{}", serde_json::to_string_pretty(&msg).unwrap());
-
-    // return;
-
-    info!("{}", SpeedStamped::ROS_TYPE_NAME);
-    info!("{}", PoseStamped::ROS_TYPE_NAME);
-
     let client = roslibrust::rosbridge::ClientHandle::new_with_options(
         ClientHandleOptions::new("ws://192.168.1.122:9090")
             .timeout(std::time::Duration::from_secs(5)),
@@ -47,10 +23,7 @@ async fn main() {
     info!("ClientHandle connected");
 
     {
-        let sub = client
-            .subscribe::<std_msgs::Float64MultiArray>("/robot/joint_velocity/cmd")
-            .await
-            .unwrap();
+        let sub = topic::robot::RobotState::subscribe(&client).await.unwrap();
 
         println!("subscribed");
 

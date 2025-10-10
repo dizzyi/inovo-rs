@@ -367,8 +367,8 @@ impl FromRobot for Transform {
     }
 }
 
-impl From<crate::ros_bridge::Pose> for Transform {
-    fn from(value: crate::ros_bridge::Pose) -> Self {
+impl From<crate::ros_bridge::geometry_msgs::Pose> for Transform {
+    fn from(value: crate::ros_bridge::geometry_msgs::Pose) -> Self {
         Transform::from(value.into_isometry())
     }
 }

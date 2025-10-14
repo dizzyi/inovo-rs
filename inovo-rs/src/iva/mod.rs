@@ -258,8 +258,14 @@ pub enum MotionTarget {
 impl MakeIvaRequest for MotionTarget {
     fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
         let target = match self {
-            MotionTarget::Transform(t) => "tranform",
-            MotionTarget::JointCoord(j) => "joint_coord",
+            MotionTarget::Transform(t) => {
+                req.make(t);
+                "tranform"
+            }
+            MotionTarget::JointCoord(j) => {
+                req.make(j);
+                "joint_coord"
+            }
         };
         req.insert("target", target)
     }

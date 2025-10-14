@@ -26,6 +26,10 @@ pub fn iva_test() {
         insts.push(res);
     }
     for robot_command in cmds.clone().into_iter() {
+        let res = Instruction::exec_push(robot_command);
+        insts.push(res);
+    }
+    for robot_command in cmds.clone().into_iter() {
         let res = Instruction::enqueue(robot_command);
         insts.push(res);
     }
@@ -56,11 +60,6 @@ pub fn iva_test() {
     insts.push(Instruction::custom(custom_command));
 
     for inst in insts {
-        match inst.to_json() {
-            Ok(json) => println!("{}", json),
-            Err(e) => error!("{}", e.to_string()),
-        };
-
         let iva_req = inst.to_iva_request().unwrap();
         let j = serde_json::to_string_pretty(&iva_req).unwrap();
         println!("{}", j);

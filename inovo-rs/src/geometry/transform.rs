@@ -7,23 +7,12 @@ use std::ops::{Div, Mul, Neg};
 use serde::{Deserialize, Serialize};
 
 use crate::geometry::deg_to_rad;
-use crate::iva::MotionTarget;
+use crate::iva::{MakeIvaRequest, MotionTarget};
 use crate::robot::FromRobot;
 
 pub use crate::ros_bridge::geometry_msgs::Pose;
 
 use crate::ros_bridge::geometry_msgs::{Point, Quaternion};
-
-/// A structure representing a 3D Poseation
-// #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-// pub struct Pose {
-//     pub x: f64,
-//     pub y: f64,
-//     pub z: f64,
-//     pub rx: f64,
-//     pub ry: f64,
-//     pub rz: f64,
-// }
 
 impl Pose {
     /// create a new Pose from vector and euler angle
@@ -355,5 +344,21 @@ impl From<Pose> for MotionTarget {
 impl FromRobot for Pose {
     fn from_robot(res: String) -> Result<Self, String> {
         Ok(res.into())
+    }
+}
+
+impl MakeIvaRequest for Pose {
+    fn make_iva_request(
+        &self,
+        req: &mut crate::iva::IvaRequest,
+    ) -> Result<(), crate::iva::IvaMakeRequestError> {
+        req.insert("x", self.position.x)?;
+        req.insert("y", self.position.y)?;
+        req.insert("z", self.position.z)?;
+        let euler = self.radian_euler();
+        req.insert("rx", euler[0])?;
+        req.insert("ry", euler[1])?;
+        req.insert("rz", euler[2])?;
+        Ok(())
     }
 }

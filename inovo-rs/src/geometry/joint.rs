@@ -2,7 +2,7 @@ use std::ops::{Add, Neg, Sub};
 
 use serde::{Deserialize, Serialize};
 
-use crate::iva::MotionTarget;
+use crate::iva::{MakeIvaRequest, MotionTarget};
 use crate::robot::FromRobot;
 
 /// A structure representing a 6 joint coordinate, in degree
@@ -218,5 +218,20 @@ impl From<JointCoord> for MotionTarget {
 impl FromRobot for JointCoord {
     fn from_robot(res: String) -> Result<Self, String> {
         Ok(res.into())
+    }
+}
+
+impl MakeIvaRequest for JointCoord {
+    fn make_iva_request(
+        &self,
+        req: &mut crate::iva::IvaRequest,
+    ) -> Result<(), crate::iva::IvaMakeRequestError> {
+        req.insert("j1", self.j1)?;
+        req.insert("j2", self.j2)?;
+        req.insert("j3", self.j3)?;
+        req.insert("j4", self.j4)?;
+        req.insert("j5", self.j5)?;
+        req.insert("j6", self.j6)?;
+        Ok(())
     }
 }

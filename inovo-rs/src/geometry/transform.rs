@@ -213,7 +213,7 @@ impl Transform {
     }
     /// append relative transform to the original transform, relatice to the vector part of original transform
     pub fn then_relative(self, transform: Self) -> Self {
-        self.clone().then_relative_to(self.vector_only(), transform)
+        self.then_relative_to(self.vector_only(), transform)
     }
     /// append relative x translation to the original transform
     pub fn then_relative_x(self, mm: f64) -> Self {
@@ -297,12 +297,12 @@ impl From<String> for Transform {
             .skip_while(|&c| c != 'r')
             .take_while(|&c| c != '}')
             .collect::<String>()
-            .replace(&['{', '}', ' '], "")
+            .replace(['{', '}', ' '], "")
             .split(",")
             .filter_map(|term| {
                 let t = term.split(':').collect::<Vec<_>>();
 
-                let k = t.get(0)?.to_string();
+                let k = t.first()?.to_string();
 
                 let v = match t.get(1)?.parse::<f64>() {
                     Ok(f) => f,
@@ -355,9 +355,9 @@ impl Neg for Transform {
     }
 }
 
-impl Into<MotionTarget> for Transform {
-    fn into(self) -> MotionTarget {
-        MotionTarget::Transform(self)
+impl From<Transform> for MotionTarget {
+    fn from(val: Transform) -> Self {
+        MotionTarget::Transform(val)
     }
 }
 

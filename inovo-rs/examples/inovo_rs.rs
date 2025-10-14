@@ -49,8 +49,8 @@ fn main() -> Result<(), RobotError> {
     let vz = Transform::from_z(100.0);
     let rz = Transform::from_z(10.0);
     let vxyz = Transform::from_vector([100.0, 100.0, 100.0]);
-    let tx = home_transform.clone().then_x(100.0);
-    let ty = home_transform.clone().then_y(100.0);
+    let tx = home_transform.then_x(100.0);
+    let ty = home_transform.then_y(100.0);
     let j1 = home_joint_coord.clone().then_j1(90.0);
     let j2 = j1.clone() + JointCoord::from([10.0, 10.0, 10.0, 10.0, 10.0, 10.0]);
 
@@ -59,34 +59,34 @@ fn main() -> Result<(), RobotError> {
     // set the motion of the robot
     bot.set_param(param_1.clone())?;
     // perform a linear motion
-    bot.linear(tx.clone())?;
+    bot.linear(tx)?;
     // sleep
     bot.sleep(1.0)?;
     // you can chain command
     // it will execute on at a time
-    bot.linear_relative(vz.clone())?
+    bot.linear_relative(vz)?
         .sleep(1.0)?
         .set_param(param_2.clone())?
-        .joint(ty.clone())?
+        .joint(ty)?
         .sleep(1.0)?
-        .joint_relative(vxyz.clone())?
+        .joint_relative(vxyz)?
         .sleep(1.0)?
         // joint motion can take both `JointCoord` and `Transform` as target
         // while other can only take `Transform` as target
         .joint(j1.clone())?
         .set_param(param_3.clone())?
-        .joint(home_transform.clone())?;
+        .joint(home_transform)?;
 
     // you can also create a command sequence for all of the command
     let command_sequence = CommandSequence::new()
         .then_set_param(param_1.clone())
-        .then_linear(home_transform.clone())
+        .then_linear(home_transform)
         .then_sleep(1.0)
-        .then_linear(tx.clone())
-        .then_linear_relative(vz.clone())
+        .then_linear(tx)
+        .then_linear_relative(vz)
         .then_set_param(param_2.clone())
-        .then_joint(ty.clone())
-        .then_joint_relative(vz.clone())
+        .then_joint(ty)
+        .then_joint_relative(vz)
         .then_set_param(param_3.clone())
         .then_joint(j2.clone())
         .then_joint(home_joint_coord.clone());
@@ -98,9 +98,9 @@ fn main() -> Result<(), RobotError> {
     // the `with` keywork denote context manager
     // it will create a RAII guard that reverse the motion automatically
     // after the guard is drop
-    bot.with_linear(tx.clone())?;
+    bot.with_linear(tx)?;
     {
-        let guard = bot.with_linear_relative(vz.clone())?;
+        let guard = bot.with_linear_relative(vz)?;
         // do some other stuff
     } // the robot motion will automatically reverse here
       //
@@ -112,9 +112,9 @@ fn main() -> Result<(), RobotError> {
     //
     //
     {
-        let mut guard_1 = bot.with_joint(ty.clone())?;
-        let mut guard_2 = guard_1.with_joint_relative(rz.clone())?;
-        let mut guard_3 = guard_2.with_joint(j1.clone())?;
+        let mut guard_1 = bot.with_joint(ty)?;
+        let mut guard_2 = guard_1.with_joint_relative(rz)?;
+        let guard_3 = guard_2.with_joint(j1.clone())?;
         // do some other stuff
         //
         // you can early drop the guard and its motion will be reverse

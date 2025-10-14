@@ -147,9 +147,9 @@ impl From<&[f64; 6]> for JointCoord {
     }
 }
 
-impl Into<[f64; 6]> for JointCoord {
-    fn into(self) -> [f64; 6] {
-        [self.j1, self.j2, self.j3, self.j4, self.j5, self.j6]
+impl From<JointCoord> for [f64; 6] {
+    fn from(val: JointCoord) -> Self {
+        [val.j1, val.j2, val.j3, val.j4, val.j5, val.j6]
     }
 }
 
@@ -189,7 +189,7 @@ impl From<String> for JointCoord {
             .replace(&['[', ']', ' '][..], "")
             .split(",")
             .filter_map(|s| s.parse::<f64>().ok())
-            .map(|f| crate::geometry::rad_to_deg(f))
+            .map(crate::geometry::rad_to_deg)
             .collect::<Vec<_>>()
             .into()
     }
@@ -198,7 +198,7 @@ impl From<String> for JointCoord {
 impl From<Vec<f64>> for JointCoord {
     fn from(value: Vec<f64>) -> JointCoord {
         [
-            value.get(0).cloned().unwrap_or_default(),
+            value.first().cloned().unwrap_or_default(),
             value.get(1).cloned().unwrap_or_default(),
             value.get(2).cloned().unwrap_or_default(),
             value.get(3).cloned().unwrap_or_default(),
@@ -209,9 +209,9 @@ impl From<Vec<f64>> for JointCoord {
     }
 }
 
-impl Into<MotionTarget> for JointCoord {
-    fn into(self) -> MotionTarget {
-        MotionTarget::JointCoord(self)
+impl From<JointCoord> for MotionTarget {
+    fn from(val: JointCoord) -> Self {
+        MotionTarget::JointCoord(val)
     }
 }
 

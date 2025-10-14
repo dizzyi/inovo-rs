@@ -1,5 +1,3 @@
-use derive_more::{Deref, DerefMut};
-use roslibrust::RosMessageType;
 use serde::{Deserialize, Serialize};
 
 use inovo_rs_macro::*;

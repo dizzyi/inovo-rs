@@ -225,6 +225,12 @@ impl GetTarget {
 #[serde(rename_all = "snake_case")]
 pub struct CustomCommand(BTreeMap<String, CustomArg>);
 
+impl Default for CustomCommand {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CustomCommand {
     pub fn new() -> CustomCommand {
         CustomCommand(BTreeMap::default())

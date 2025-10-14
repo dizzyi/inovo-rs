@@ -1,5 +1,5 @@
 use roslibrust::rosbridge::{ClientHandle, ServiceClient};
-use roslibrust::{Result, RosMessageType, RosServiceType};
+use roslibrust::{Result, RosServiceType};
 
 pub mod beckhoff_io;
 pub mod psu;

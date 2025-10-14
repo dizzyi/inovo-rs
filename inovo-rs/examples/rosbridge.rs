@@ -2,13 +2,9 @@ use inovo_rs::ros_bridge::{
     commander_msgs::*, geometry_msgs::*, service::Service, topic::Topic, *,
 };
 
-use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 
-use roslibrust::{
-    rosbridge::{ClientHandle, ClientHandleOptions},
-    RosMessageType,
-};
+use roslibrust::rosbridge::ClientHandleOptions;
 
 use tracing::info;
 
@@ -247,13 +243,13 @@ async fn main() {
             if res
                 .status_list
                 .iter()
-                .any(|s| s.goal_id.id.contains(&"this"))
+                .any(|s| s.goal_id.id.contains("this"))
             {
                 println!("{:#?}", res);
             }
         };
         let fb_cb = |res: MotionActionFeedback| {
-            if res.status.goal_id.id.contains(&"this") {
+            if res.status.goal_id.id.contains("this") {
                 println!("{:#?}", res);
             }
         };

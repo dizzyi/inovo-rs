@@ -169,7 +169,7 @@ impl<'a, T: ?Sized, C: Context<T>> ContextGuard<'a, T, C> {
 
 impl<'a, T: ?Sized, C: Context<T>> Drop for ContextGuard<'a, T, C> {
     fn drop(&mut self) {
-        self.context.context_drop(&mut self.guard)
+        self.context.context_drop(self.guard)
     }
 }
 

@@ -1,9 +1,6 @@
 use derive_more::{Deref, DerefMut};
-use roslibrust::RosMessageType;
-use serde::{Deserialize, Serialize};
 
 use inovo_rs_macro::*;
-use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use crate::ros_bridge::std_msgs::Header;
 
@@ -65,9 +62,9 @@ pub struct Point {
     pub z: f64,
 }
 
-impl Into<nalgebra::Vector3<f64>> for Point {
-    fn into(self) -> nalgebra::Vector3<f64> {
-        nalgebra::Vector3::<f64>::new(self.x, self.y, self.z)
+impl From<Point> for nalgebra::Vector3<f64> {
+    fn from(val: Point) -> Self {
+        nalgebra::Vector3::<f64>::new(val.x, val.y, val.z)
     }
 }
 impl From<nalgebra::Vector3<f64>> for Point {
@@ -80,11 +77,9 @@ impl From<nalgebra::Vector3<f64>> for Point {
     }
 }
 
-impl Into<nalgebra::Translation3<f64>> for Point {
-    fn into(self) -> nalgebra::Translation3<f64> {
-        nalgebra::Translation {
-            vector: self.into(),
-        }
+impl From<Point> for nalgebra::Translation3<f64> {
+    fn from(val: Point) -> Self {
+        nalgebra::Translation { vector: val.into() }
     }
 }
 impl From<nalgebra::Translation3<f64>> for Point {
@@ -144,11 +139,11 @@ pub struct Pose {
     pub orientation: Quaternion,
 }
 
-impl Into<nalgebra::Isometry3<f64>> for Pose {
-    fn into(self) -> nalgebra::Isometry3<f64> {
+impl From<Pose> for nalgebra::Isometry3<f64> {
+    fn from(val: Pose) -> Self {
         nalgebra::Isometry {
-            rotation: self.orientation.into(),
-            translation: self.position.into(),
+            rotation: val.orientation.into(),
+            translation: val.position.into(),
         }
     }
 }
@@ -215,14 +210,14 @@ pub struct Quaternion {
     pub w: f64,
 }
 
-impl Into<nalgebra::Quaternion<f64>> for Quaternion {
-    fn into(self) -> nalgebra::Quaternion<f64> {
-        nalgebra::Quaternion::new(self.w, self.x, self.y, self.z)
+impl From<Quaternion> for nalgebra::Quaternion<f64> {
+    fn from(val: Quaternion) -> Self {
+        nalgebra::Quaternion::new(val.w, val.x, val.y, val.z)
     }
 }
-impl Into<nalgebra::UnitQuaternion<f64>> for Quaternion {
-    fn into(self) -> nalgebra::UnitQuaternion<f64> {
-        nalgebra::UnitQuaternion::from_quaternion(self.into())
+impl From<Quaternion> for nalgebra::UnitQuaternion<f64> {
+    fn from(val: Quaternion) -> Self {
+        nalgebra::UnitQuaternion::from_quaternion(val.into())
     }
 }
 impl From<nalgebra::Quaternion<f64>> for Quaternion {
@@ -322,9 +317,9 @@ pub struct Vector3 {
     pub z: f64,
 }
 
-impl Into<nalgebra::Vector3<f64>> for Vector3 {
-    fn into(self) -> nalgebra::Vector3<f64> {
-        nalgebra::Vector3::<f64>::new(self.x, self.y, self.z)
+impl From<Vector3> for nalgebra::Vector3<f64> {
+    fn from(val: Vector3) -> Self {
+        nalgebra::Vector3::<f64>::new(val.x, val.y, val.z)
     }
 }
 impl From<nalgebra::Vector3<f64>> for Vector3 {
@@ -337,11 +332,9 @@ impl From<nalgebra::Vector3<f64>> for Vector3 {
     }
 }
 
-impl Into<nalgebra::Translation3<f64>> for Vector3 {
-    fn into(self) -> nalgebra::Translation3<f64> {
-        nalgebra::Translation {
-            vector: self.into(),
-        }
+impl From<Vector3> for nalgebra::Translation3<f64> {
+    fn from(val: Vector3) -> Self {
+        nalgebra::Translation { vector: val.into() }
     }
 }
 impl From<nalgebra::Translation3<f64>> for Vector3 {

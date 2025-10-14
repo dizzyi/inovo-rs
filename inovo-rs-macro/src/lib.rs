@@ -1,15 +1,12 @@
 // #![feature(proc_macro_span)]
 
 extern crate proc_macro;
-use proc_macro::{Span, TokenStream};
+use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::Parse;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{
-    self, parse_macro_input, Attribute, Expr, Field, ItemStruct, Lit, LitStr, Token, Type,
-    TypeTuple,
-};
+use syn::{self, parse_macro_input, ItemStruct, LitStr, Token, Type};
 
 struct InovoMsgAttr {
     args: Punctuated<LitStr, Token![,]>,

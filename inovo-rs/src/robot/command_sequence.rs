@@ -25,6 +25,12 @@ pub struct CommandSequence {
     seq: Vec<RobotCommand>,
 }
 
+impl Default for CommandSequence {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CommandSequence {
     /// create a new empty sequence
     pub fn new() -> Self {

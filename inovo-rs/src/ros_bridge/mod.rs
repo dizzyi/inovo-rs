@@ -18,9 +18,6 @@ use std_srvs::*;
 use roslibrust::rosbridge::{ClientHandle, Publisher, Subscriber};
 use roslibrust::{RosMessageType, RosServiceType};
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_repr::*;
-
 use inovo_rs_macro::*;
 
 type InovoRosResult<T> = Result<T, roslibrust::Error>;

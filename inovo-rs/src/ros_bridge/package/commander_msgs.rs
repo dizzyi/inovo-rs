@@ -6,6 +6,7 @@ use inovo_rs_macro::*;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use crate::ros_bridge::{
+    actionlib_msgs, geometry_msgs,
     std_msgs::{Header, Time},
     std_srvs::Response,
 };
@@ -16,6 +17,13 @@ use crate::ros_bridge::{
 
 #[inovo_msg("commander_msgs")]
 pub struct BlockError {
+    pub header: Header,
+    pub block_id: String,
+    pub message: String,
+}
+
+#[inovo_msg("commander_msgs")]
+pub struct BlockLog {
     pub header: Header,
     pub block_id: String,
     pub message: String,
@@ -52,20 +60,21 @@ pub struct MotionAction {
 #[inovo_msg("commander_msgs")]
 pub struct MotionActionFeedback {
     pub header: Header,
-    // pub status: GoalStatus, // TODO
+    pub status: actionlib_msgs::GoalStatus,
     pub feedback: MotionFeedback,
 }
 
 #[inovo_msg("commander_msgs")]
 pub struct MotionActionGoal {
     pub header: Header,
+    pub goal_id: actionlib_msgs::GoalID,
     pub goal: MotionGoal,
 }
 
 #[inovo_msg("commander_msgs")]
 pub struct MotionActionResult {
     pub header: Header,
-    // pub goal: GoalStatus, // TODO
+    pub status: actionlib_msgs::GoalStatus,
     pub result: MotionResult,
 }
 
@@ -92,7 +101,7 @@ pub struct MotionResult {
 
 #[inovo_msg("commander_msgs")]
 pub struct MotionSequencePoint {
-    // pub pose: Pose, // TODO
+    pub pose: geometry_msgs::Pose,
     pub frame_id: String,
     pub tcp_id: String,
     pub relative: bool,
@@ -139,7 +148,7 @@ pub struct Prompt {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize_repr)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum RuntimeStatus {
     #[default]
@@ -148,6 +157,7 @@ pub enum RuntimeStatus {
     Paused = 2,
     PausedOnError = 3,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Variable {
     pub name: String,
@@ -188,7 +198,7 @@ pub struct Update {
 //=======================================
 
 #[inovo_msg("commander_msgs")]
-#[inovo_srv(Response)]
+#[inovo_req(Response)]
 pub struct DeleteVariable {
     pub name: String,
 }
@@ -200,7 +210,7 @@ pub struct DownloadResponse {
 }
 
 #[inovo_msg("commander_msgs")]
-#[inovo_srv(DownloadResponse)]
+#[inovo_req(DownloadResponse)]
 pub struct Download;
 
 #[inovo_msg("commander_msgs")]
@@ -211,6 +221,7 @@ pub struct GetVariableResponse {
 }
 
 #[inovo_msg("commander_msgs")]
+#[inovo_req(GetVariableResponse)]
 pub struct GetVariable {
     pub name: String,
 }
@@ -218,7 +229,7 @@ pub struct GetVariable {
 // TODO Insert
 
 #[inovo_msg("commander_msgs")]
-#[inovo_srv(ProjectMeta)]
+#[inovo_req(ProjectMeta)]
 pub struct ListProject;
 
 // TODO NewProject
@@ -239,7 +250,7 @@ pub struct Project {
 // TODO PromptResponse
 
 #[inovo_msg("commander_msgs")]
-#[inovo_srv(Response)]
+#[inovo_req(Response)]
 pub struct RunSequence {
     pub procedure_name: String,
     pub variables_names: Vec<String>,
@@ -249,7 +260,7 @@ pub struct RunSequence {
 // TODO SetCursor
 
 #[inovo_msg("commander_msgs")]
-#[inovo_srv(Response)]
+#[inovo_req(Response)]
 pub struct SetVariable {
     pub name: String,
     pub value: String,

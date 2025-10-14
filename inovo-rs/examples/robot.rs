@@ -3,8 +3,7 @@ use inovo_rs::iva::CustomCommand;
 use inovo_rs::robot::*;
 
 fn main() -> Result<(), RobotError> {
-        tracing_subscriber::fmt::init();
-
+    tracing_subscriber::fmt::init();
 
     let mut bot = Robot::defaut_logger(50003, "psu002")?;
 

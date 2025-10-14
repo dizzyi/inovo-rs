@@ -35,5 +35,5 @@ pub struct GetStringResponse {
 }
 
 #[inovo_msg("psu_msgs")]
-#[inovo_srv(GetStringResponse)]
+#[inovo_req(GetStringResponse)]
 pub struct GetString;

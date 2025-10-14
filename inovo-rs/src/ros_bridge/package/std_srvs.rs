@@ -16,7 +16,7 @@ pub struct Response {
 }
 
 #[inovo_msg("std_srvs")]
-#[inovo_srv(())]
+#[inovo_req(())]
 pub struct Empty;
 
 #[inovo_msg("std_srvs")]
@@ -26,5 +26,5 @@ pub struct SetBool {
 }
 
 #[inovo_msg("std_srvs")]
-#[inovo_srv(Response)]
+#[inovo_req(Response)]
 pub struct Trigger;

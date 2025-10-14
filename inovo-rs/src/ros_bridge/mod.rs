@@ -1,10 +1,13 @@
 use std::fmt::Debug;
 
 pub mod package;
+pub mod service;
 pub mod topic;
 
 pub use package::*;
-pub use topic::*;
+
+use service::*;
+use topic::*;
 
 use arm_msgs::*;
 use commander_msgs::*;

@@ -33,10 +33,10 @@ pub struct Char {
 
 #[inovo_msg("std_msgs")]
 pub struct ColorRGBA {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
 }
 
 #[inovo_msg("std_msgs")]
@@ -51,7 +51,7 @@ pub struct Empty;
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct Float32 {
-    data: f32,
+    pub data: f32,
 }
 
 #[inovo_msg("std_msgs")]
@@ -63,7 +63,7 @@ pub struct Float32MultiArray {
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct Floa64 {
-    data: f64,
+    pub data: f64,
 }
 
 #[inovo_msg("std_msgs")]
@@ -75,14 +75,14 @@ pub struct Float64MultiArray {
 #[inovo_msg("std_msgs")]
 pub struct Header {
     pub seq: u32,
-    pub time: DurationData,
+    pub stamp: DurationData,
     pub frame_id: String,
 }
 
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct Int16 {
-    data: i16,
+    pub data: i16,
 }
 
 #[inovo_msg("std_msgs")]
@@ -94,7 +94,7 @@ pub struct Int16MultiArray {
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct Int32 {
-    data: i32,
+    pub data: i32,
 }
 
 #[inovo_msg("std_msgs")]
@@ -106,7 +106,7 @@ pub struct Int32MultiArray {
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct Int64 {
-    data: i64,
+    pub data: i64,
 }
 
 #[inovo_msg("std_msgs")]
@@ -118,7 +118,7 @@ pub struct Int64MultiArray {
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct Int8 {
-    data: i8,
+    pub data: i8,
 }
 
 #[inovo_msg("std_msgs")]
@@ -143,19 +143,19 @@ pub struct MultiArrayLayout {
 #[inovo_msg("std_msgs", "String")]
 #[derive(Deref, DerefMut)]
 pub struct ROSString {
-    data: String,
+    pub data: String,
 }
 
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct Time {
-    data: DurationData,
+    pub data: DurationData,
 }
 
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct UInt16 {
-    data: u16,
+    pub data: u16,
 }
 
 #[inovo_msg("std_msgs")]
@@ -167,7 +167,7 @@ pub struct UInt16MultiArray {
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct UInt32 {
-    data: u32,
+    pub data: u32,
 }
 
 #[inovo_msg("std_msgs")]
@@ -179,7 +179,7 @@ pub struct UInt32MultiArray {
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct UInt64 {
-    data: u64,
+    pub data: u64,
 }
 
 #[inovo_msg("std_msgs")]
@@ -191,7 +191,7 @@ pub struct UInt64MultiArray {
 #[inovo_msg("std_msgs")]
 #[derive(Deref, DerefMut)]
 pub struct UInt8 {
-    data: u8,
+    pub data: u8,
 }
 
 #[inovo_msg("std_msgs")]

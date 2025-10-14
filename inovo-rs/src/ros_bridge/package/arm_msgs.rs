@@ -118,7 +118,7 @@ pub struct RobotState {
 // Services
 //=======================================
 #[inovo_msg("arm_msgs")]
-#[inovo_srv(ModularArmConfig)]
+#[inovo_req(ModularArmConfig)]
 pub struct ArmConfig;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize_repr, Deserialize_repr)]
@@ -130,7 +130,7 @@ pub enum ArmControlCommand {
 }
 
 #[inovo_msg("arm_msgs")]
-#[inovo_srv(ResponseBool)]
+#[inovo_req(ResponseBool)]
 pub struct ArmControl {
     pub command: ArmControlCommand,
 }
@@ -143,7 +143,7 @@ pub struct ArmInfoResponse {
 }
 
 #[inovo_msg("arm_msgs")]
-#[inovo_srv(ArmInfoResponse)]
+#[inovo_req(ArmInfoResponse)]
 pub struct ArmInfo;
 
 // TODO EnqueueJointTrajectory
@@ -156,5 +156,5 @@ pub struct PollJointStateResponse {
 }
 
 #[inovo_msg("arm_msgs")]
-#[inovo_srv(PollJointStateResponse)]
+#[inovo_req(PollJointStateResponse)]
 pub struct PollJointState;

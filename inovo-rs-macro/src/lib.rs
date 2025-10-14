@@ -60,7 +60,7 @@ pub fn inovo_msg(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn inovo_srv(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn inovo_req(attr: TokenStream, item: TokenStream) -> TokenStream {
     let item_struct = parse_macro_input!(item as ItemStruct);
 
     let ident = item_struct.ident.clone();
@@ -80,17 +80,17 @@ pub fn inovo_srv(attr: TokenStream, item: TokenStream) -> TokenStream {
     .into()
 }
 
-struct InovoTopicArg {
+struct NameType {
     pub name: LitStr,
     pub msg_type: Type,
 }
 
-impl Parse for InovoTopicArg {
+impl Parse for NameType {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let name = input.parse()?;
         let _: Comma = input.parse()?;
         let msg_type = input.parse()?;
-        Ok(InovoTopicArg { name, msg_type })
+        Ok(NameType { name, msg_type })
     }
 }
 
@@ -100,7 +100,7 @@ pub fn inovo_topic(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let ident = item_struct.ident.clone();
 
-    let inovo_topic_attr = parse_macro_input!(attr as InovoTopicArg);
+    let inovo_topic_attr = parse_macro_input!(attr as NameType);
 
     let topic_name = inovo_topic_attr.name;
     let topic_msg_type = inovo_topic_attr.msg_type;
@@ -111,6 +111,28 @@ pub fn inovo_topic(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl crate::ros_bridge::Topic for #ident {
             const NAME: &'static str = #topic_name;
             type Message = #topic_msg_type;
+        }
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn inovo_service(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let item_struct = parse_macro_input!(item as ItemStruct);
+
+    let ident = item_struct.ident.clone();
+
+    let inovo_topic_attr = parse_macro_input!(attr as NameType);
+
+    let topic_name = inovo_topic_attr.name;
+    let topic_msg_type = inovo_topic_attr.msg_type;
+
+    quote! {
+        #item_struct
+
+        impl crate::ros_bridge::Service for #ident {
+            const NAME: &'static str = #topic_name;
+            type Req = #topic_msg_type;
         }
     }
     .into()

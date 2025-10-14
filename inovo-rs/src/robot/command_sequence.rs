@@ -44,11 +44,11 @@ impl CommandSequence {
     }
 
     /// append a linear motion with a specified target
-    pub fn then_linear(self, target: Transform) -> Self {
+    pub fn then_linear(self, target: Pose) -> Self {
         self.then(RobotCommand::linear(target))
     }
     /// append a linear relative motion with a specified target
-    pub fn then_linear_relative(self, target: Transform) -> Self {
+    pub fn then_linear_relative(self, target: Pose) -> Self {
         self.then(RobotCommand::linear_relative(target))
     }
     /// append a joint motion with a specified target
@@ -56,7 +56,7 @@ impl CommandSequence {
         self.then(RobotCommand::joint(target))
     }
     /// append a joint relative motion with a specified target
-    pub fn then_joint_relative(self, target: Transform) -> Self {
+    pub fn then_joint_relative(self, target: Pose) -> Self {
         self.then(RobotCommand::joint_relative(target))
     }
     /// append a sleep command

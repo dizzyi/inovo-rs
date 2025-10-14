@@ -6,7 +6,7 @@ mod transform;
 use std::f64::consts::PI;
 
 pub use joint::JointCoord;
-pub use transform::Transform;
+pub use transform::Pose;
 
 /// convert degree to radian
 pub fn deg_to_rad(deg: f64) -> f64 {

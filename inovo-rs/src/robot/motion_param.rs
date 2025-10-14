@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::geometry::deg_to_rad;
+use crate::{geometry::deg_to_rad, iva::MakeIvaRequest};
 
 /// Data structure representing robot's motion parameter
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -62,5 +62,19 @@ impl MotionParam {
         self.tcp_speed_angular =
             deg_to_rad(deg.clamp(MotionParam::MIN_ANGLE, MotionParam::MAX_ANGLE));
         self
+    }
+}
+
+impl MakeIvaRequest for MotionParam {
+    fn make_iva_request(
+        &self,
+        req: &mut crate::iva::IvaRequest,
+    ) -> Result<(), crate::iva::IvaMakeRequestError> {
+        req.insert("speed", self.speed)?;
+        req.insert("accel", self.accel)?;
+        req.insert("blend_linear", self.blend_linear)?;
+        req.insert("blend_angular", self.blend_angular)?;
+        req.insert("tcp_speed_linear", self.tcp_speed_linear)?;
+        req.insert("tcp_speed_angular", self.tcp_speed_angular)
     }
 }

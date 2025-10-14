@@ -11,7 +11,7 @@ pub fn iva_test() {
         RobotCommand::SetParameter(MotionParam::new().set_speed(50.0)),
         RobotCommand::Motion {
             motion_mode: MotionMode::Linear,
-            target: MotionTarget::Transform(Transform::identity()),
+            target: MotionTarget::Transform(Pose::identity()),
         },
         RobotCommand::Motion {
             motion_mode: MotionMode::JointRelative,
@@ -57,14 +57,12 @@ pub fn iva_test() {
 
     for inst in insts {
         match inst.to_json() {
-            Ok(json) => info!(
-                "{}",
-                json.split("\n")
-                    .map(|s| format!("{}{}", " ".repeat(0), s))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            ),
+            Ok(json) => println!("{}", json),
             Err(e) => error!("{}", e.to_string()),
         };
+
+        let iva_req = inst.to_iva_request().unwrap();
+        let j = serde_json::to_string_pretty(&iva_req).unwrap();
+        println!("{}", j);
     }
 }

@@ -1,9 +1,10 @@
 //! Module for constructing `IVA` message for communicating with robot
 
+use serde::ser::SerializeSeq;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
-use crate::geometry::{JointCoord, Transform};
+use crate::geometry::{JointCoord, Pose};
 use crate::robot::MotionParam;
 
 /// data structure representing all iva request messages
@@ -89,8 +90,65 @@ impl Instruction {
         Instruction::Custom(custom_command)
     }
 
-    pub fn to_json(self) -> Result<String, serde_json::Error> {
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(&self)
+    }
+
+    pub fn to_iva_request(&self) -> Result<IvaRequest, IvaMakeRequestError> {
+        let mut req = Default::default();
+        self.make_iva_request(&mut req)?;
+        Ok(req)
+    }
+}
+
+impl MakeIvaRequest for Instruction {
+    fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
+        let op_code = match self {
+            Instruction::Execute {
+                robot_command,
+                enter_context,
+            } => {
+                req.make(robot_command)?;
+                req.insert("enter_context", *enter_context)?;
+                "execute"
+            }
+            Instruction::Enqueue(robot_command) => {
+                req.make(robot_command)?;
+                "enqueue"
+            }
+            Instruction::Dequeue { enter_context } => {
+                req.insert("enter_context", *enter_context)?;
+                "dequeue"
+            }
+            Instruction::Pop => "pop",
+            Instruction::Gripper(gripper_command) => {
+                req.make(gripper_command)?;
+                "gripper"
+            }
+            Instruction::IO {
+                target,
+                port,
+                io_command,
+            } => {
+                let target = match target {
+                    IOTarget::Beckhoff => "beckhoff",
+                    IOTarget::Wrist => "wrist",
+                };
+                req.insert("target", target)?;
+                req.insert("port", *port as f64)?;
+                req.make(io_command)?;
+                "io"
+            }
+            Instruction::Get(get_target) => {
+                req.make(get_target)?;
+                "get"
+            }
+            Instruction::Custom(custom_command) => {
+                req.make(custom_command)?;
+                "custom"
+            }
+        };
+        req.insert("op_code", op_code)
     }
 }
 
@@ -121,13 +179,13 @@ impl RobotCommand {
     pub fn set_parameter(motion_param: MotionParam) -> RobotCommand {
         RobotCommand::SetParameter(motion_param)
     }
-    pub fn linear(target: Transform) -> RobotCommand {
+    pub fn linear(target: Pose) -> RobotCommand {
         RobotCommand::Motion {
             motion_mode: MotionMode::Linear,
             target: target.into(),
         }
     }
-    pub fn linear_relative(target: Transform) -> RobotCommand {
+    pub fn linear_relative(target: Pose) -> RobotCommand {
         RobotCommand::Motion {
             motion_mode: MotionMode::LinearRelative,
             target: target.into(),
@@ -139,11 +197,42 @@ impl RobotCommand {
             target: target.into(),
         }
     }
-    pub fn joint_relative(target: Transform) -> RobotCommand {
+    pub fn joint_relative(target: Pose) -> RobotCommand {
         RobotCommand::Motion {
             motion_mode: MotionMode::JointRelative,
             target: target.into(),
         }
+    }
+}
+
+impl MakeIvaRequest for RobotCommand {
+    fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
+        let action = match self {
+            RobotCommand::Synchronize => "synchronize",
+            RobotCommand::Sleep { second } => {
+                req.insert("second", *second)?;
+                "sleep"
+            }
+            RobotCommand::SetParameter(motion_param) => {
+                req.make(motion_param)?;
+                "set_parameter"
+            }
+            RobotCommand::Motion {
+                motion_mode,
+                target,
+            } => {
+                let mode = match motion_mode {
+                    MotionMode::Linear => "linear",
+                    MotionMode::LinearRelative => "linear_relative",
+                    MotionMode::Joint => "joint",
+                    MotionMode::JointRelative => "joint_relative",
+                };
+                req.insert("motion_mode", mode)?;
+                req.make(target)?;
+                "motion"
+            }
+        };
+        req.insert("action", action)
     }
 }
 
@@ -162,8 +251,18 @@ pub enum MotionMode {
 #[serde(tag = "target")]
 #[serde(rename_all = "snake_case")]
 pub enum MotionTarget {
-    Transform(Transform),
+    Transform(Pose),
     JointCoord(JointCoord),
+}
+
+impl MakeIvaRequest for MotionTarget {
+    fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
+        let target = match self {
+            MotionTarget::Transform(t) => "tranform",
+            MotionTarget::JointCoord(j) => "joint_coord",
+        };
+        req.insert("target", target)
+    }
 }
 
 /// data structure representing robot gripper command
@@ -174,6 +273,20 @@ pub enum GripperCommand {
     Activate,
     Get,
     Set { label: String },
+}
+
+impl MakeIvaRequest for GripperCommand {
+    fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
+        let action = match self {
+            GripperCommand::Activate => "activate",
+            GripperCommand::Get => "get",
+            GripperCommand::Set { label } => {
+                req.insert("label", label)?;
+                "set"
+            }
+        };
+        req.insert("action", action)
+    }
 }
 
 /// data structure representing psu io target
@@ -193,6 +306,19 @@ pub enum IOCommand {
     Set { state: f64 },
 }
 
+impl MakeIvaRequest for IOCommand {
+    fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
+        let action = match self {
+            IOCommand::Get => "get",
+            IOCommand::Set { state } => {
+                req.insert("state", *state)?;
+                "set"
+            }
+        };
+        req.insert("action", action)
+    }
+}
+
 /// data structure representing command to get data from robot
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "target")]
@@ -206,6 +332,20 @@ pub enum GetTarget {
 impl GetTarget {
     pub fn data(key: impl Into<String>) -> GetTarget {
         GetTarget::Data { key: key.into() }
+    }
+}
+
+impl MakeIvaRequest for GetTarget {
+    fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
+        let target = match self {
+            GetTarget::Transform => "transform",
+            GetTarget::JointCoord => "joint_coord",
+            GetTarget::Data { key } => {
+                req.insert("key", key)?;
+                "data"
+            }
+        };
+        req.insert("target", target)
     }
 }
 
@@ -245,6 +385,18 @@ impl CustomCommand {
     }
 }
 
+impl MakeIvaRequest for CustomCommand {
+    fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
+        for (k, v) in self.0.iter() {
+            match v {
+                CustomArg::Float(f) => req.insert(k, *f)?,
+                CustomArg::String(s) => req.insert(k, s)?,
+            }
+        }
+        Ok(())
+    }
+}
+
 /// data structure representing value in custom command
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -252,4 +404,83 @@ impl CustomCommand {
 pub enum CustomArg {
     String(String),
     Float(f64),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum IvaArg {
+    String(String),
+    Float(f64),
+}
+
+impl<'a> From<&'a str> for IvaArg {
+    fn from(value: &'a str) -> Self {
+        IvaArg::String(value.to_string())
+    }
+}
+
+impl From<String> for IvaArg {
+    fn from(value: String) -> Self {
+        IvaArg::String(value)
+    }
+}
+impl From<&String> for IvaArg {
+    fn from(value: &String) -> Self {
+        IvaArg::String(value.clone())
+    }
+}
+
+impl From<f64> for IvaArg {
+    fn from(value: f64) -> Self {
+        IvaArg::Float(value)
+    }
+}
+impl From<i32> for IvaArg {
+    fn from(value: i32) -> Self {
+        IvaArg::Float(value as f64)
+    }
+}
+impl From<bool> for IvaArg {
+    fn from(value: bool) -> Self {
+        IvaArg::Float(if value { 1.0 } else { 0.0 })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct IvaRequest(pub HashMap<String, IvaArg>);
+
+impl IvaRequest {
+    pub(crate) fn insert(
+        &mut self,
+        key: impl Into<String>,
+        value: impl Into<IvaArg>,
+    ) -> Result<(), IvaMakeRequestError> {
+        let k = key.into();
+        let v = value.into();
+        if let Some(v_exist) = self.0.insert(k.clone(), v.clone()) {
+            return Err(IvaMakeRequestError::DuplicatedKey {
+                key: k,
+                v_insert: v,
+                v_exist,
+            });
+        }
+        Ok(())
+    }
+    fn make(&mut self, obj: &impl MakeIvaRequest) -> Result<(), IvaMakeRequestError> {
+        obj.make_iva_request(self)
+    }
+}
+
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum IvaMakeRequestError {
+    #[error("Encounter duplicated key `{key}` while making request (inserting {v_insert:?}, existing {v_exist:?})")]
+    DuplicatedKey {
+        key: String,
+        v_insert: IvaArg,
+        v_exist: IvaArg,
+    },
+}
+
+pub trait MakeIvaRequest {
+    fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError>;
 }

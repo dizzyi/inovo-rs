@@ -19,56 +19,35 @@
 //! assert_eq!(client.read().unwrap(), "Polo");
 //! ```
 
-use net2::TcpBuilder;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use tracing::{debug, info};
 
-/// A struct respresenting Tcp listener
-/// # Example
-/// ```no_run
-/// use inovo_rs::socket::*;
-///
-/// let mut listener = Listener::new(50003, None).unwrap();
-///
-/// let mut stream = listener.accept(None).unwrap();
-/// ```
-pub struct Listener {
-    /// The tcp listener
-    tcp_listener: TcpListener,
+#[derive(Debug, thiserror::Error)]
+pub enum LocalListenerError {
+    #[error(transparent)]
+    LocalIPError(#[from] local_ip_address::Error),
+    #[error(transparent)]
+    StdIOError(#[from] std::io::Error),
 }
 
-impl Listener {
-    /// Create a new TCP listener, bounded to a specified port
-    pub fn new(port: u16) -> Result<Listener, io::Error> {
-        let ip = local_ip_address::local_ip().unwrap();
-        let addr = SocketAddr::from((ip, port));
+pub fn new_local_listener(port: u16) -> Result<std::net::TcpListener, LocalListenerError> {
+    let ip = local_ip_address::local_ip()?;
+    let addr = SocketAddr::from((ip, port));
+    info!("creating new socket . . .");
+    info!("--- Address : {}", addr);
+    let tcp_listener = TcpListener::bind(addr)?;
+    info!("Socket binding successful.");
+    Ok(tcp_listener)
+}
 
-        info!("creating new socket . . .");
-        info!("--- Address : {}", addr);
+pub trait InovoListener {
+    fn accept_stream(&self) -> std::io::Result<InovoStream>;
+}
 
-        let tcp_listener = TcpListener::bind(addr)?;
-        info!("Socket binding successful.");
-
-        Ok(Self { tcp_listener })
-    }
-    /// accept a new connection and return `Stream`
-    ///
-    /// ## Argument
-    /// - `logger : Option<Logger>` : a logger for the accepted stream.
-    pub fn accept(&mut self) -> Result<Stream, io::Error> {
-        info!("accepting new connection . . .");
-
-        let (tcp_stream, _) = self.tcp_listener.accept()?;
-
-        info!("successful accept new connection.");
-        info!("    {}", tcp_stream.peer_addr()?);
-
-        Stream::new(tcp_stream)
-    }
-
-    pub fn addr(&self) -> Result<SocketAddr, io::Error> {
-        self.tcp_listener.local_addr()
+impl InovoListener for std::net::TcpListener {
+    fn accept_stream(&self) -> std::io::Result<InovoStream> {
+        InovoStream::accept_from(self)
     }
 }
 
@@ -84,7 +63,7 @@ impl Listener {
 /// client.write("some string").unwrap();
 /// let s: String = client.read().unwrap();
 /// ```
-pub struct Stream {
+pub struct InovoStream {
     /// Writer to the tcp stream
     buf_writer: BufWriter<TcpStream>,
     /// Reader of the tcp stream
@@ -93,20 +72,19 @@ pub struct Stream {
     buffer: String,
 }
 
-impl Stream {
+impl InovoStream {
     /// create a new stream
     ///
     /// ## Argument
-    /// - `name : Option<String>` : a name for the accepted stream, default to ip address
-    /// - `logger : Option<Logger>` : a logger for the accepted stream.
-    pub fn new(tcp_stream: TcpStream) -> Result<Self, io::Error> {
+    /// - `tcp_stream : TcpStream` : inner tcp stream connection
+    pub fn new(tcp_stream: TcpStream) -> std::io::Result<Self> {
         let buf_writer = BufWriter::new(tcp_stream.try_clone()?);
         let buf_reader = BufReader::new(tcp_stream.try_clone()?);
         let buffer = String::new();
 
         info!("New Tcp Stream created successful.");
 
-        Ok(Stream {
+        Ok(InovoStream {
             buf_writer,
             buf_reader,
             buffer,
@@ -116,15 +94,14 @@ impl Stream {
     ///
     /// ## Argument
     /// - `addr: SocketAddr` : target's socket address
-    /// - `name : Option<String>` : a name for the accepted stream, default to ip address
-    /// - `logger : Option<Logger>` : a logger for the accepted stream.
-    pub fn connect(port: u16, addr: SocketAddr) -> Result<Self, io::Error> {
-        let ip = local_ip_address::local_ip().unwrap();
-        let local_addr = SocketAddr::from((ip, port));
+    pub fn connect(addr: SocketAddr) -> Result<Self, io::Error> {
+        Self::new(TcpStream::connect(addr)?)
+    }
 
-        let tcp_stream = TcpBuilder::new_v4()?.bind(local_addr)?.connect(addr)?;
-
-        Self::new(tcp_stream)
+    pub fn accept_from(listener: &std::net::TcpListener) -> std::io::Result<Self> {
+        let (conn, ip) = listener.accept()?;
+        info!("Accept connection from : {ip}");
+        Ok(Self::new(conn)?)
     }
 
     /// write a message ends with `\r\n` to the socket stream
@@ -141,7 +118,11 @@ impl Stream {
         self.buffer.clear();
         let size = self.buf_reader.read_line(&mut self.buffer)?;
         if size == 0 {
-            return Err(std::io::Error::other("0 input bytes, diconnected"));
+            // return Err(std::io::Error::other("0 input bytes, diconnected"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "0 input bytes, disconnected",
+            ));
         }
         let msg = self.buffer.clone().trim().to_string();
         debug!("<<< {}", msg);

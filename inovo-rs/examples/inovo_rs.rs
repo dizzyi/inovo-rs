@@ -3,13 +3,13 @@ use inovo_rs::iva::CustomCommand;
 use inovo_rs::robot::*;
 use tracing::info;
 
-fn main() -> Result<(), RobotError> {
+fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     info!("Creating new robot.");
 
     // create a new client to the robot
-    let mut bot = Robot::defaut_logger(50003, "192.168.1.121")?;
+    let mut bot = Robot::new_inovo(50003, "192.168.1.121")?;
 
     // Motion Parameter
     //
@@ -41,14 +41,14 @@ fn main() -> Result<(), RobotError> {
     // Getting Current Transform and Joint Coordinate of the robot
     //
     // get the current transform of the robot
-    let home_transform = bot.get_current_transform()?;
+    let home_transform = bot.get_current_pose()?;
     // get the current joint coordinate of the robot
     let home_joint_coord = bot.get_current_joint()?;
 
     // Handling geometry data
-    let vz = Transform::from_z(100.0);
-    let rz = Transform::from_z(10.0);
-    let vxyz = Transform::from_vector([100.0, 100.0, 100.0]);
+    let vz = Pose::from_z(100.0);
+    let rz = Pose::from_z(10.0);
+    let vxyz = Pose::from_vector([100.0, 100.0, 100.0]);
     let tx = home_transform.then_x(100.0);
     let ty = home_transform.then_y(100.0);
     let j1 = home_joint_coord.clone().then_j1(90.0);
@@ -105,9 +105,9 @@ fn main() -> Result<(), RobotError> {
     } // the robot motion will automatically reverse here
       //
       // you can chain context like this
-    bot.with_linear_relative(Transform::from_x(100.0))?
-        .with_linear_relative(Transform::from_y(100.0))?
-        .with_linear_relative(Transform::from_z(100.0))?;
+    bot.with_linear_relative(Pose::from_x(100.0))?
+        .with_linear_relative(Pose::from_y(100.0))?
+        .with_linear_relative(Pose::from_z(100.0))?;
     //
     //
     //
@@ -161,9 +161,9 @@ fn main() -> Result<(), RobotError> {
     let my_f64: f64 = bot.get_data("my f64")?;
     let my_string: String = bot.get_data("my string")?;
     let my_joint_coord: JointCoord = bot.get_data("my joint_coord")?;
-    let my_transform: Transform = bot.get_data("my transform")?;
+    let my_transform: Pose = bot.get_data("my transform")?;
     let my_waypoint_j: JointCoord = bot.get_data("my waypoint")?;
-    let my_waypoint_t: Transform = bot.get_data("my waypoint")?;
+    let my_waypoint_t: Pose = bot.get_data("my waypoint")?;
     info!("my bool        : {}", my_bool);
     info!("my i64         : {}", my_i64);
     info!("my f64         : {}", my_f64);

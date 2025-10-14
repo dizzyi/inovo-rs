@@ -1,4 +1,4 @@
-use inovo_rs::socket::*;
+use inovo_rs::socket::{self, *};
 use std::net::SocketAddr;
 use std::thread;
 use tracing::info;
@@ -7,7 +7,7 @@ const MSG_COUNT: u16 = 100;
 const SERVER_PORT: u16 = 50003;
 
 fn client(port: u16, addr: SocketAddr) -> Result<(), std::io::Error> {
-    let mut client = Stream::connect(port, addr)?;
+    let mut client = InovoStream::connect(addr)?;
     for i in 0..MSG_COUNT {
         client.write(format!("{} send {}", port, i))?;
         let _ = client.read()?;
@@ -15,7 +15,7 @@ fn client(port: u16, addr: SocketAddr) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn handle(mut stream: Stream) -> Result<(), std::io::Error> {
+fn handle(mut stream: InovoStream) -> Result<(), std::io::Error> {
     for i in 0..MSG_COUNT {
         let _ = stream.read()?;
         stream.write(format!("server response {}", i))?;
@@ -24,10 +24,10 @@ fn handle(mut stream: Stream) -> Result<(), std::io::Error> {
 }
 
 #[test]
-fn socket_test() -> Result<(), std::io::Error> {
-    let mut listener = Listener::new(SERVER_PORT)?;
+fn socket_test() -> anyhow::Result<()> {
+    let mut listener = socket::new_local_listener(SERVER_PORT)?;
 
-    let addr = listener.addr()?;
+    let addr = listener.local_addr()?;
 
     let ports = 50004..50009;
 
@@ -40,7 +40,7 @@ fn socket_test() -> Result<(), std::io::Error> {
     info!("Spawned all client threads.");
 
     for _ in ports {
-        let stream = listener.accept().unwrap();
+        let stream = listener.accept_stream().unwrap();
         handles.push(thread::spawn(move || handle(stream)));
     }
 

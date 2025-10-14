@@ -59,20 +59,23 @@ pub use motion_param::*;
 /// ```
 pub struct Robot {
     /// the tcp socket connection with the psu
-    stream: socket::Stream,
+    stream: socket::InovoStream,
 }
 
 impl Robot {
     /// construct a new [`Robot`]
-    pub fn new(stream: socket::Stream) -> Self {
+    pub fn new(stream: socket::InovoStream) -> Self {
         Self { stream }
     }
 
     /// create a new instance, and call ros bridge run sequence to remotly start
-    pub fn new_inovo(port: u16, host: impl Into<String>) -> Result<Self, RobotError> {
+    pub fn new_inovo(
+        port: u16,
+        host: impl Into<String>,
+    ) -> Result<Self, socket::LocalListenerError> {
         let host = host.into();
 
-        let mut listener = socket::Listener::new(port)?;
+        let listener = socket::new_local_listener(port)?;
 
         tokio::runtime::Runtime::new()
             .unwrap()
@@ -85,13 +88,9 @@ impl Robot {
             })
             .unwrap();
 
-        let stream = listener.accept()?;
+        let stream = socket::InovoStream::accept_from(&listener)?;
 
         Ok(Self::new(stream))
-    }
-    /// create and run sequence with of inovo arm with default logger
-    pub fn defaut_logger(port: u16, host: impl Into<String>) -> Result<Self, RobotError> {
-        Self::new_inovo(port, host)
     }
 
     /// write a message to the socket
@@ -153,7 +152,7 @@ where
     }
 
     /// instruct the robot to execute a motion
-    fn motion(&mut self, mode: MotionMode, target: Transform) -> Result<&mut Self, RobotError> {
+    fn motion(&mut self, mode: MotionMode, target: Pose) -> Result<&mut Self, RobotError> {
         self.execute(RobotCommand::Motion {
             motion_mode: mode,
             target: target.into(),
@@ -161,11 +160,11 @@ where
     }
 
     /// instruct the robot to perform a linear move
-    fn linear(&mut self, target: Transform) -> Result<&mut Self, RobotError> {
+    fn linear(&mut self, target: Pose) -> Result<&mut Self, RobotError> {
         self.motion(MotionMode::Linear, target)
     }
     /// instruct the robot to perform a linear relative move
-    fn linear_relative(&mut self, target: Transform) -> Result<&mut Self, RobotError> {
+    fn linear_relative(&mut self, target: Pose) -> Result<&mut Self, RobotError> {
         self.motion(MotionMode::LinearRelative, target)
     }
     /// instruct the robot to perform a joint move, can take both [`Transform`] and [`JointCoord`] as target
@@ -176,7 +175,7 @@ where
         })
     }
     /// instruct the robot to perform a joint relative move
-    fn joint_relative(&mut self, target: Transform) -> Result<&mut Self, RobotError> {
+    fn joint_relative(&mut self, target: Pose) -> Result<&mut Self, RobotError> {
         self.motion(MotionMode::JointRelative, target)
     }
 
@@ -203,7 +202,7 @@ where
     fn with_motion(
         &mut self,
         mode: MotionMode,
-        target: Transform,
+        target: Pose,
     ) -> Result<ContextGuard<Self, IvaContext>, RobotError> {
         self.with_execute(RobotCommand::Motion {
             motion_mode: mode,
@@ -211,16 +210,13 @@ where
         })
     }
     /// instruct the robot to enter a context with a linear motion
-    fn with_linear(
-        &mut self,
-        target: Transform,
-    ) -> Result<ContextGuard<Self, IvaContext>, RobotError> {
+    fn with_linear(&mut self, target: Pose) -> Result<ContextGuard<Self, IvaContext>, RobotError> {
         self.with_motion(MotionMode::Linear, target)
     }
     /// instruct the robot to enter a context with a linear relative motion
     fn with_linear_relative(
         &mut self,
-        target: Transform,
+        target: Pose,
     ) -> Result<ContextGuard<Self, IvaContext>, RobotError> {
         self.with_motion(MotionMode::LinearRelative, target)
     }
@@ -237,7 +233,7 @@ where
     /// instruct the robot to enter a context with a joint relative motion
     fn with_joint_relative(
         &mut self,
-        target: Transform,
+        target: Pose,
     ) -> Result<ContextGuard<Self, IvaContext>, RobotError> {
         self.with_motion(MotionMode::JointRelative, target)
     }
@@ -280,8 +276,8 @@ where
         self.instruction_assert_ok(Instruction::Pop)
     }
 
-    /// get the current [`Transform`] of the robot
-    fn get_current_transform(&mut self) -> Result<Transform, RobotError> {
+    /// get the current [`Pose`] of the robot
+    fn get_current_pose(&mut self) -> Result<Pose, RobotError> {
         self.get(GetTarget::Transform)
     }
     /// get the current [`JointCoord`] of the robot

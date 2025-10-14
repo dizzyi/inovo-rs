@@ -21,8 +21,7 @@ tokio = { workspace = true }
 chrono = "0.4.31"
 local-ip-address = "0.6.1"
 nalgebra = { workspace = true }
-net2 = "0.2.39"
-colored = "3.0.0"
+
 thiserror = "2.0.12"
 roslibrust = { workspace = true }
 serde_repr = "0.1.20"
@@ -32,3 +31,4 @@ inovo-rs-macro = { workspace = true }
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3" }
+anyhow = { version = "1.0.100" }

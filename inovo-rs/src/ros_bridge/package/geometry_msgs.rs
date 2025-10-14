@@ -56,6 +56,7 @@ pub struct InertiaStamped {
 }
 
 #[inovo_msg("geometry_msgs")]
+#[derive(Copy)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
@@ -134,6 +135,7 @@ pub struct PolygonStamped {
 }
 
 #[inovo_msg("geometry_msgs")]
+#[derive(Copy)]
 pub struct Pose {
     pub position: Point,
     pub orientation: Quaternion,
@@ -203,6 +205,7 @@ pub struct PoseWithCovarianceStamped {
 }
 
 #[inovo_msg("geometry_msgs")]
+#[derive(Copy)]
 pub struct Quaternion {
     pub x: f64,
     pub y: f64,

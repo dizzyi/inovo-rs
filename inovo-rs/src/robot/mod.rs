@@ -1,10 +1,14 @@
 //! Module for interacting with inovo robot arm
 
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
+use std::net::{SocketAddr, TcpStream};
+use tracing::{debug, info};
+
 use crate::context::{Context, ContextGuard};
 use crate::geometry::*;
 use crate::iva::*;
 use crate::ros_bridge::*;
-use crate::socket;
+use crate::socket::{self, InovoListener};
 
 mod command_sequence;
 mod motion_param;
@@ -58,14 +62,72 @@ pub use motion_param::*;
 /// }
 /// ```
 pub struct Robot {
-    /// the tcp socket connection with the psu
-    stream: socket::InovoStream,
+    /// Writer to the tcp stream
+    buf_writer: BufWriter<TcpStream>,
+    /// Reader of the tcp stream
+    buf_reader: BufReader<TcpStream>,
+    /// Buffer for reading message
+    buffer: String,
 }
 
 impl Robot {
     /// construct a new [`Robot`]
-    pub fn new(stream: socket::InovoStream) -> Self {
-        Self { stream }
+    ///
+    /// ## Argument
+    /// - `tcp_stream : TcpStream` : inner tcp stream connection
+    pub fn new(tcp_stream: TcpStream) -> std::io::Result<Self> {
+        let buf_writer = BufWriter::new(tcp_stream.try_clone()?);
+        let buf_reader = BufReader::new(tcp_stream.try_clone()?);
+        let buffer = String::new();
+
+        info!("New Tcp Stream created successful.");
+
+        Ok(Robot {
+            buf_writer,
+            buf_reader,
+            buffer,
+        })
+    }
+    /// get the local socket address of the stream
+    pub fn local_addr(&self) -> Result<SocketAddr, io::Error> {
+        self.buf_writer.get_ref().local_addr()
+    }
+
+    /// get the peer socket address of the stream
+    pub fn peer_addr(&self) -> Result<SocketAddr, io::Error> {
+        self.buf_writer.get_ref().peer_addr()
+    }
+
+    // Accept a new incoming connection from this listener.
+    pub fn accept_from(listener: &std::net::TcpListener) -> std::io::Result<Self> {
+        let (conn, ip) = listener.accept()?;
+        info!("Accept connection from : {ip}");
+        Ok(Self::new(conn)?)
+    }
+
+    /// write a message ends with `\r\n` to the socket stream
+    pub fn write(&mut self, msg: impl Into<String>) -> Result<(), io::Error> {
+        let msg: String = format!("{}\r\n", msg.into());
+        debug!(">>> {}", msg.trim());
+        self.buf_writer.write(msg.as_bytes())?;
+        self.buf_writer.flush()?;
+        Ok(())
+    }
+
+    /// read a message ends with `\n` from the socket stream
+    pub fn read(&mut self) -> Result<String, io::Error> {
+        self.buffer.clear();
+        let size = self.buf_reader.read_line(&mut self.buffer)?;
+        if size == 0 {
+            // return Err(std::io::Error::other("0 input bytes, diconnected"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "0 input bytes, disconnected",
+            ));
+        }
+        let msg = self.buffer.clone().trim().to_string();
+        debug!("<<< {}", msg);
+        Ok(msg)
     }
 
     /// create a new instance, and call ros bridge run sequence to remotly start
@@ -88,25 +150,25 @@ impl Robot {
             })
             .unwrap();
 
-        let stream = socket::InovoStream::accept_from(&listener)?;
+        let bot = listener.accept_robot()?;
 
-        Ok(Self::new(stream))
-    }
-
-    /// write a message to the socket
-    pub fn write(&mut self, msg: impl Into<String>) -> Result<(), RobotError> {
-        Ok(self.stream.write(msg)?)
-    }
-    /// read a message from the socket
-    pub fn read(&mut self) -> Result<String, RobotError> {
-        Ok(self.stream.read()?)
+        Ok(bot)
     }
 }
 
 impl IvaRobot for Robot {
     fn instruction(&mut self, inst: Instruction) -> Result<String, RobotError> {
         self.write(inst.to_json()?)?;
-        self.read()
+        let res = self.read()?;
+        if res.contains(&"ERROR") {
+            Err(RobotError::IvaError {
+                req: inst,
+                res: res,
+                reason: "response contains `ERROR`".to_owned(),
+            })
+        } else {
+            Ok(res)
+        }
     }
 }
 
@@ -120,19 +182,27 @@ where
 
     /// send an instruction to the robot and assert the response to be `"OK"`, then return self
     fn instruction_assert_ok(&mut self, inst: Instruction) -> Result<&mut Self, RobotError> {
-        let res = self.instruction(inst)?;
+        let res = self.instruction(inst.clone())?;
         match res.as_str() {
             "OK" => Ok(self),
-            _ => Err(RobotError::ResponseError(res)),
+            _ => Err(RobotError::IvaError {
+                req: inst,
+                res,
+                reason: "response assert `OK` failed".to_owned(),
+            }),
         }
     }
 
     /// send an instruction to the robot and try to parse the response into `T`
     fn instruction_return<T: FromRobot>(&mut self, inst: Instruction) -> Result<T, RobotError> {
-        let res = self.instruction(inst)?;
-        match T::from_robot(res) {
+        let res = self.instruction(inst.clone())?;
+        match T::from_robot(&res) {
             Ok(t) => Ok(t),
-            Err(s) => Err(RobotError::ResponseError(s)),
+            Err(s) => Err(RobotError::IvaError {
+                req: inst,
+                res,
+                reason: format!("Failed to parse from robot due to : {}", s),
+            }),
         }
     }
 
@@ -353,21 +423,21 @@ unsafe impl Send for Robot {}
 /// A trait for all data structure that can be deserialize from robot response
 pub trait FromRobot: Sized {
     /// parse from robto response string
-    fn from_robot(res: String) -> Result<Self, String>;
+    fn from_robot(res: &String) -> Result<Self, String>;
 }
 
 impl FromRobot for f64 {
-    fn from_robot(res: String) -> Result<Self, String> {
+    fn from_robot(res: &String) -> Result<Self, String> {
         res.parse::<f64>().map_err(|e| format!("{}", e))
     }
 }
 impl FromRobot for i64 {
-    fn from_robot(res: String) -> Result<Self, String> {
+    fn from_robot(res: &String) -> Result<Self, String> {
         res.parse::<i64>().map_err(|e| format!("{}", e))
     }
 }
 impl FromRobot for bool {
-    fn from_robot(res: String) -> Result<Self, String> {
+    fn from_robot(res: &String) -> Result<Self, String> {
         match res.as_str() {
             "True" => Ok(true),
             "False" => Ok(false),
@@ -376,8 +446,8 @@ impl FromRobot for bool {
     }
 }
 impl FromRobot for String {
-    fn from_robot(res: String) -> Result<Self, String> {
-        Ok(res)
+    fn from_robot(res: &String) -> Result<Self, String> {
+        Ok(res.to_owned())
     }
 }
 
@@ -403,5 +473,9 @@ pub enum RobotError {
     #[error(transparent)]
     JsonSer(#[from] serde_json::Error),
     #[error("Response Error")]
-    ResponseError(String),
+    IvaError {
+        req: Instruction,
+        res: String,
+        reason: String,
+    },
 }

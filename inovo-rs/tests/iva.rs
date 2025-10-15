@@ -61,7 +61,7 @@ pub fn iva_test() {
 
     for inst in insts {
         let iva_req = inst.to_iva_request().unwrap();
-        let j = serde_json::to_string_pretty(&iva_req).unwrap();
+        let j = iva_req.to_string_pretty();
         println!("{}", j);
     }
 }

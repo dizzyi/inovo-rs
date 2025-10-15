@@ -1,6 +1,5 @@
 //! Module for constructing `IVA` message for communicating with robot
 
-use serde::ser::SerializeSeq;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
@@ -9,11 +8,8 @@ use crate::robot::MotionParam;
 
 /// data structure representing all iva request messages
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "op_code")]
-#[serde(rename_all = "snake_case")]
 pub enum Instruction {
     Execute {
-        #[serde(flatten)]
         robot_command: RobotCommand,
         enter_context: f64,
     },
@@ -23,11 +19,9 @@ pub enum Instruction {
     },
     Pop,
     Gripper(GripperCommand),
-    #[serde(rename = "io")]
     IO {
         target: IOTarget,
         port: u16,
-        #[serde(flatten)]
         io_command: IOCommand,
     },
     Get(GetTarget),
@@ -154,8 +148,6 @@ impl MakeIvaRequest for Instruction {
 
 /// data structure representing all robot command
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "action")]
-#[serde(rename_all = "snake_case")]
 pub enum RobotCommand {
     Synchronize,
     Sleep {
@@ -164,7 +156,6 @@ pub enum RobotCommand {
     SetParameter(MotionParam),
     Motion {
         motion_mode: MotionMode,
-        #[serde(flatten)]
         target: MotionTarget,
     },
 }
@@ -238,7 +229,6 @@ impl MakeIvaRequest for RobotCommand {
 
 /// data structure representing robot motion blend mode
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub enum MotionMode {
     Linear,
     LinearRelative,
@@ -248,8 +238,6 @@ pub enum MotionMode {
 
 /// data structure representing robot motion target
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "target")]
-#[serde(rename_all = "snake_case")]
 pub enum MotionTarget {
     Transform(Pose),
     JointCoord(JointCoord),
@@ -259,11 +247,11 @@ impl MakeIvaRequest for MotionTarget {
     fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
         let target = match self {
             MotionTarget::Transform(t) => {
-                req.make(t);
+                req.make(t)?;
                 "tranform"
             }
             MotionTarget::JointCoord(j) => {
-                req.make(j);
+                req.make(j)?;
                 "joint_coord"
             }
         };
@@ -273,8 +261,6 @@ impl MakeIvaRequest for MotionTarget {
 
 /// data structure representing robot gripper command
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "action")]
-#[serde(rename_all = "snake_case")]
 pub enum GripperCommand {
     Activate,
     Get,
@@ -297,7 +283,6 @@ impl MakeIvaRequest for GripperCommand {
 
 /// data structure representing psu io target
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub enum IOTarget {
     Beckhoff,
     Wrist,
@@ -305,8 +290,6 @@ pub enum IOTarget {
 
 /// data structure representing io command
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "action")]
-#[serde(rename_all = "snake_case")]
 pub enum IOCommand {
     Get,
     Set { state: f64 },
@@ -327,8 +310,6 @@ impl MakeIvaRequest for IOCommand {
 
 /// data structure representing command to get data from robot
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "target")]
-#[serde(rename_all = "snake_case")]
 pub enum GetTarget {
     Transform,
     JointCoord,
@@ -368,8 +349,7 @@ impl MakeIvaRequest for GetTarget {
 ///     .add_float("my_float_key", 69.420);
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct CustomCommand(BTreeMap<String, CustomArg>);
+pub struct CustomCommand(BTreeMap<String, IvaArg>);
 
 impl Default for CustomCommand {
     fn default() -> Self {
@@ -382,11 +362,11 @@ impl CustomCommand {
         CustomCommand(BTreeMap::default())
     }
     pub fn add_string(mut self, key: impl Into<String>, value: impl Into<String>) -> CustomCommand {
-        self.0.insert(key.into(), CustomArg::String(value.into()));
+        self.0.insert(key.into(), IvaArg::String(value.into()));
         self
     }
     pub fn add_float(mut self, key: impl Into<String>, value: f64) -> CustomCommand {
-        self.0.insert(key.into(), CustomArg::Float(value));
+        self.0.insert(key.into(), IvaArg::Float(value));
         self
     }
 }
@@ -395,28 +375,34 @@ impl MakeIvaRequest for CustomCommand {
     fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
         for (k, v) in self.0.iter() {
             match v {
-                CustomArg::Float(f) => req.insert(k, *f)?,
-                CustomArg::String(s) => req.insert(k, s)?,
+                IvaArg::Float(f) => req.insert(k, *f)?,
+                IvaArg::String(s) => req.insert(k, s)?,
+                IvaArg::Bool(b) => req.insert(k, *b)?,
+                IvaArg::UInt(u) => req.insert(k, *u)?,
             }
         }
         Ok(())
     }
 }
 
-/// data structure representing value in custom command
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-#[serde(rename_all = "snake_case")]
-pub enum CustomArg {
-    String(String),
-    Float(f64),
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum IvaArg {
     String(String),
+    UInt(u32),
     Float(f64),
+    Bool(bool),
+}
+
+impl IvaArg {
+    fn to_value(&self) -> serde_json::Value {
+        match self {
+            IvaArg::String(s) => serde_json::Value::from(s.clone()),
+            IvaArg::UInt(u) => serde_json::Value::from(*u),
+            IvaArg::Float(f) => serde_json::Value::from(*f),
+            IvaArg::Bool(b) => serde_json::Value::from(*b),
+        }
+    }
 }
 
 impl<'a> From<&'a str> for IvaArg {
@@ -441,9 +427,9 @@ impl From<f64> for IvaArg {
         IvaArg::Float(value)
     }
 }
-impl From<i32> for IvaArg {
-    fn from(value: i32) -> Self {
-        IvaArg::Float(value as f64)
+impl From<u32> for IvaArg {
+    fn from(value: u32) -> Self {
+        IvaArg::UInt(value)
     }
 }
 impl From<bool> for IvaArg {
@@ -452,7 +438,7 @@ impl From<bool> for IvaArg {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct IvaRequest(pub HashMap<String, IvaArg>);
 
 impl IvaRequest {
@@ -474,6 +460,14 @@ impl IvaRequest {
     }
     fn make(&mut self, obj: &impl MakeIvaRequest) -> Result<(), IvaMakeRequestError> {
         obj.make_iva_request(self)
+    }
+    pub fn to_string_pretty(&self) -> String {
+        let dict = self
+            .0
+            .iter()
+            .map(|(k, v)| (k, v.to_value()))
+            .collect::<serde_json::Value>();
+        serde_json::to_string_pretty(&dict).unwrap()
     }
 }
 

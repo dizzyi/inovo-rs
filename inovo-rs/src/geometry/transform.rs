@@ -270,8 +270,8 @@ impl Pose {
     }
 }
 
-impl From<String> for Pose {
-    fn from(value: String) -> Self {
+impl From<&String> for Pose {
+    fn from(value: &String) -> Self {
         value
             .chars()
             .skip_while(|&c| c != 'r')
@@ -342,7 +342,7 @@ impl From<Pose> for MotionTarget {
 }
 
 impl FromRobot for Pose {
-    fn from_robot(res: String) -> Result<Self, String> {
+    fn from_robot(res: &String) -> Result<Self, String> {
         Ok(res.into())
     }
 }

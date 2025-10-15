@@ -1,5 +1,5 @@
-use std::ops::Deref;
-
+use derive_more::Deref;
+use derive_more::DerefMut;
 use serde::{Deserialize, Serialize};
 
 use crate::geometry::*;
@@ -20,9 +20,9 @@ use crate::robot::MotionParam;
 ///     .then_sleep(10.0)
 ///     .then_sync();
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Deref, DerefMut)]
 pub struct CommandSequence {
-    seq: Vec<RobotCommand>,
+    pub seq: Vec<RobotCommand>,
 }
 
 impl Default for CommandSequence {
@@ -78,13 +78,6 @@ impl IntoIterator for CommandSequence {
     type IntoIter = std::vec::IntoIter<RobotCommand>;
     fn into_iter(self) -> Self::IntoIter {
         self.seq.into_iter()
-    }
-}
-
-impl Deref for CommandSequence {
-    type Target = Vec<RobotCommand>;
-    fn deref(&self) -> &Self::Target {
-        &self.seq
     }
 }
 

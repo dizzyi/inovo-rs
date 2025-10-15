@@ -179,8 +179,8 @@ impl Sub for JointCoord {
     }
 }
 
-impl From<String> for JointCoord {
-    fn from(value: String) -> JointCoord {
+impl From<&String> for JointCoord {
+    fn from(value: &String) -> JointCoord {
         value
             .chars()
             .skip_while(|&c| c != '[')
@@ -216,7 +216,7 @@ impl From<JointCoord> for MotionTarget {
 }
 
 impl FromRobot for JointCoord {
-    fn from_robot(res: String) -> Result<Self, String> {
+    fn from_robot(res: &String) -> Result<Self, String> {
         Ok(res.into())
     }
 }

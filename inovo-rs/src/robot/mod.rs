@@ -7,6 +7,7 @@ use tracing::{debug, info};
 use crate::context::{Context, ContextGuard};
 use crate::geometry::*;
 use crate::iva::*;
+use crate::ros_bridge::service::Service;
 use crate::ros_bridge::*;
 use crate::socket::{self, InovoListener};
 
@@ -139,16 +140,19 @@ impl Robot {
 
         let listener = socket::new_local_listener(port)?;
 
-        tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(async {
-                roslibrust::rosbridge::ClientHandle::new(host.clone())
+        tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let client =
+                roslibrust::rosbridge::ClientHandle::new(format!("ws://{}:9090", host.clone()))
                     .await
-                    .unwrap()
-                    .sequence_function("iva")
-                    .await
-            })
-            .unwrap();
+                    .unwrap();
+            let req = package::commander_msgs::RunSequenceRequest {
+                procedure_name: "iva".to_owned(),
+            };
+            println!("{:?}", serde_json::to_string(&req));
+            crate::ros_bridge::service::sequence::Start::call(&client, req)
+                .await
+                .unwrap();
+        });
 
         let bot = listener.accept_robot()?;
 
@@ -158,8 +162,10 @@ impl Robot {
 
 impl IvaRobot for Robot {
     fn instruction(&mut self, inst: Instruction) -> Result<String, RobotError> {
-        self.write(inst.to_json()?)?;
+        let req = inst.to_iva_request()?.to_string_pretty();
+        self.write(req)?;
         let res = self.read()?;
+        info!("{:?}", res);
         if res.contains(&"ERROR") {
             Err(RobotError::IvaError {
                 req: inst,
@@ -468,8 +474,8 @@ impl Context<Robot> for IvaContext {
 pub enum RobotError {
     #[error(transparent)]
     SocketError(#[from] std::io::Error),
-    // #[error(transparent)]
-    // RosBridgeError(#[from] RosBridgeError),
+    #[error(transparent)]
+    IvaMake(#[from] IvaMakeRequestError),
     #[error(transparent)]
     JsonSer(#[from] serde_json::Error),
     #[error("Response Error")]

@@ -3,9 +3,13 @@ use inovo_rs::iva::CustomCommand;
 use inovo_rs::robot::*;
 
 fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt().init();
 
-    let mut bot = Robot::new_inovo(50003, "psu002")?;
+    let mut bot = Robot::new_inovo(50003, "192.168.1.122")?;
+
+    println!("{:?}", bot.get_current_pose());
+
+    return Ok(());
 
     // robot motion
     bot.linear(Pose::from_vector([100.0, 100.0, 100.0]))?;

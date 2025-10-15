@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{geometry::deg_to_rad, iva::MakeIvaRequest};
+use crate::iva::MakeIvaRequest;
 
 /// Data structure representing robot's motion parameter
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -49,7 +49,9 @@ impl MotionParam {
     }
     /// set angular blend with percent, clamp to [`MotionParam::MIN_ANGLE`] and [`MotionParam::MAX_ANGLE]
     pub fn set_blend_angular(mut self, deg: f64) -> MotionParam {
-        self.blend_angular = deg_to_rad(deg.clamp(MotionParam::MIN_ANGLE, MotionParam::MAX_ANGLE));
+        self.blend_angular = deg
+            .clamp(MotionParam::MIN_ANGLE, MotionParam::MAX_ANGLE)
+            .to_radians();
         self
     }
     /// set linear tcp speed limit with percent, clamp to [`MotionParam::MIN_LENGHT`] and [`MotionParam::MAX_LENGHT`]
@@ -59,8 +61,9 @@ impl MotionParam {
     }
     /// set linear blend with percent, clamp to [`MotionParam::MIN_ANGLE`] and [`MotionParam::MAX_ANGLE]
     pub fn set_tcp_speed_angular(mut self, deg: f64) -> MotionParam {
-        self.tcp_speed_angular =
-            deg_to_rad(deg.clamp(MotionParam::MIN_ANGLE, MotionParam::MAX_ANGLE));
+        self.tcp_speed_angular = deg
+            .clamp(MotionParam::MIN_ANGLE, MotionParam::MAX_ANGLE)
+            .to_radians();
         self
     }
 }

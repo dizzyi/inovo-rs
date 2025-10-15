@@ -42,7 +42,7 @@ pub struct Pause;
 #[inovo_service("/sequence/set_var", commander_msgs::SetVariable)]
 pub struct SetVar;
 
-#[inovo_service("/sequence/start", commander_msgs::RunSequence)]
+#[inovo_service("/sequence/start", commander_msgs::RunSequenceRequest)]
 pub struct Start;
 
 #[inovo_service("/sequence/step", std_srvs::Trigger)]

@@ -9,7 +9,11 @@ fn main() -> anyhow::Result<()> {
     info!("Creating new robot.");
 
     // create a new client to the robot
-    let mut bot = Robot::new_inovo(50003, "192.168.1.121")?;
+    let mut bot = Robot::new_inovo(50003, "192.168.1.122")?;
+
+    println!("{:?}", bot.get_current_pose());
+
+    return Ok(());
 
     // Motion Parameter
     //

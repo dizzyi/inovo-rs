@@ -1,43 +1,26 @@
 use std::ops::{Add, Neg, Sub};
 
+use derive_more::{Deref, DerefMut};
 use serde::{Deserialize, Serialize};
 
 use crate::iva::{MakeIvaRequest, MotionTarget};
 use crate::robot::FromRobot;
 
-/// A structure representing a 6 joint coordinate, in degree
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct JointCoord {
-    j1: f64,
-    j2: f64,
-    j3: f64,
-    j4: f64,
-    j5: f64,
-    j6: f64,
-}
+/// A structure representing a 6 joint coordinate, in radian
+#[derive(Debug, Clone, Deserialize, Serialize, Default, Deref, DerefMut)]
+pub struct JointCoord(pub [f64; 6]);
 
 impl JointCoord {
     /// create a new joint coord identity
     pub fn identity() -> Self {
-        JointCoord::new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        JointCoord::default()
     }
     /// create a new joint coord from array
-    pub fn new(
-        j1_deg: f64,
-        j2_deg: f64,
-        j3_deg: f64,
-        j4_deg: f64,
-        j5_deg: f64,
-        j6_deg: f64,
-    ) -> Self {
-        JointCoord {
-            j1: j1_deg,
-            j2: j2_deg,
-            j3: j3_deg,
-            j4: j4_deg,
-            j5: j5_deg,
-            j6: j6_deg,
+    pub fn new(mut j_deg: [f64; 6]) -> Self {
+        for j in &mut j_deg {
+            *j = j.to_radians()
         }
+        JointCoord(j_deg)
     }
 
     /// create a new joint coord from joint 1
@@ -67,32 +50,32 @@ impl JointCoord {
 
     /// set the joint 1 of the joint coord
     pub fn set_j1(mut self, degree: f64) -> Self {
-        self.j1 = degree;
+        self[0] = degree.to_radians();
         self
     }
     /// set the joint 2 of the joint coord
     pub fn set_j2(mut self, degree: f64) -> Self {
-        self.j2 = degree;
+        self[1] = degree.to_radians();
         self
     }
     /// set the joint 3 of the joint coord
     pub fn set_j3(mut self, degree: f64) -> Self {
-        self.j3 = degree;
+        self[2] = degree.to_radians();
         self
     }
     /// set the joint 4 of the joint coord
     pub fn set_j4(mut self, degree: f64) -> Self {
-        self.j4 = degree;
+        self[3] = degree.to_radians();
         self
     }
     /// set the joint 5 of the joint coord
     pub fn set_j5(mut self, degree: f64) -> Self {
-        self.j5 = degree;
+        self[4] = degree.to_radians();
         self
     }
     /// set the joint 6 of the joint coord
     pub fn set_j6(mut self, degree: f64) -> Self {
-        self.j6 = degree;
+        self[5] = degree.to_radians();
         self
     }
 
@@ -137,7 +120,7 @@ impl JointCoord {
 
 impl From<[f64; 6]> for JointCoord {
     fn from(value: [f64; 6]) -> Self {
-        JointCoord::new(value[0], value[1], value[2], value[3], value[4], value[5])
+        JointCoord::new(value)
     }
 }
 
@@ -149,7 +132,7 @@ impl From<&[f64; 6]> for JointCoord {
 
 impl From<JointCoord> for [f64; 6] {
     fn from(val: JointCoord) -> Self {
-        [val.j1, val.j2, val.j3, val.j4, val.j5, val.j6]
+        val.0
     }
 }
 
@@ -189,7 +172,6 @@ impl From<&String> for JointCoord {
             .replace(&['[', ']', ' '][..], "")
             .split(",")
             .filter_map(|s| s.parse::<f64>().ok())
-            .map(crate::geometry::rad_to_deg)
             .collect::<Vec<_>>()
             .into()
     }
@@ -226,12 +208,12 @@ impl MakeIvaRequest for JointCoord {
         &self,
         req: &mut crate::iva::IvaRequest,
     ) -> Result<(), crate::iva::IvaMakeRequestError> {
-        req.insert("j1", self.j1)?;
-        req.insert("j2", self.j2)?;
-        req.insert("j3", self.j3)?;
-        req.insert("j4", self.j4)?;
-        req.insert("j5", self.j5)?;
-        req.insert("j6", self.j6)?;
+        req.insert("j1", self[0].to_degrees())?;
+        req.insert("j2", self[1].to_degrees())?;
+        req.insert("j3", self[2].to_degrees())?;
+        req.insert("j4", self[3].to_degrees())?;
+        req.insert("j5", self[4].to_degrees())?;
+        req.insert("j6", self[5].to_degrees())?;
         Ok(())
     }
 }

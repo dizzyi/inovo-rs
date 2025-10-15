@@ -20,6 +20,14 @@ async fn main() {
     .unwrap();
     info!("ClientHandle connected");
 
+    if true {
+        let io = topic::beckhoff_io::IO::subscribe(&client).await.unwrap();
+
+        loop {
+            println!("{:?}", io.next().await);
+        }
+    }
+
     if false {
         let client = client.clone();
 

@@ -11,7 +11,7 @@ pub fn iva_test() {
         RobotCommand::SetParameter(MotionParam::new().set_speed(50.0)),
         RobotCommand::Motion {
             motion_mode: MotionMode::Linear,
-            target: MotionTarget::Transform(Pose::identity()),
+            target: MotionTarget::Transform(Pose::from_y(100.0)),
         },
         RobotCommand::Motion {
             motion_mode: MotionMode::JointRelative,

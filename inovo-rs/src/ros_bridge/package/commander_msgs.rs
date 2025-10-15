@@ -255,6 +255,12 @@ pub struct RunSequence {
     pub variables_values: Vec<String>,
 }
 
+#[inovo_msg("commander_msgs")]
+#[inovo_req(Response)]
+pub struct RunSequenceRequest {
+    pub procedure_name: String,
+}
+
 // TODO SetCursor
 
 #[inovo_msg("commander_msgs")]

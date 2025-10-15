@@ -63,47 +63,6 @@ pub struct Point {
     pub z: f64,
 }
 
-impl From<Point> for nalgebra::Vector3<f64> {
-    fn from(val: Point) -> Self {
-        nalgebra::Vector3::<f64>::new(val.x, val.y, val.z)
-    }
-}
-impl From<nalgebra::Vector3<f64>> for Point {
-    fn from(value: nalgebra::Vector3<f64>) -> Self {
-        Point {
-            x: value.x,
-            y: value.y,
-            z: value.z,
-        }
-    }
-}
-
-impl From<Point> for nalgebra::Translation3<f64> {
-    fn from(val: Point) -> Self {
-        nalgebra::Translation { vector: val.into() }
-    }
-}
-impl From<nalgebra::Translation3<f64>> for Point {
-    fn from(value: nalgebra::Translation3<f64>) -> Self {
-        value.vector.into()
-    }
-}
-
-impl Point {
-    pub fn into_vector(self) -> nalgebra::Vector3<f64> {
-        self.into()
-    }
-    pub fn from_vector(vector: nalgebra::Vector3<f64>) -> Point {
-        vector.into()
-    }
-    pub fn into_translation(self) -> nalgebra::Translation3<f64> {
-        self.into()
-    }
-    pub fn from_translation(tran: nalgebra::Translation3<f64>) -> Point {
-        tran.into()
-    }
-}
-
 #[inovo_msg("geometry_msgs")]
 pub struct Point32 {
     pub x: f32,
@@ -204,8 +163,7 @@ pub struct PoseWithCovarianceStamped {
     pub pose: PoseWithCovariance,
 }
 
-#[inovo_msg("geometry_msgs")]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Quaternion {
     pub x: f64,
     pub y: f64,
@@ -213,50 +171,14 @@ pub struct Quaternion {
     pub w: f64,
 }
 
-impl From<Quaternion> for nalgebra::Quaternion<f64> {
-    fn from(val: Quaternion) -> Self {
-        nalgebra::Quaternion::new(val.w, val.x, val.y, val.z)
-    }
-}
-impl From<Quaternion> for nalgebra::UnitQuaternion<f64> {
-    fn from(val: Quaternion) -> Self {
-        nalgebra::UnitQuaternion::from_quaternion(val.into())
-    }
-}
-impl From<nalgebra::Quaternion<f64>> for Quaternion {
-    fn from(value: nalgebra::Quaternion<f64>) -> Self {
-        Quaternion {
-            x: value.i,
-            y: value.j,
-            z: value.k,
-            w: value.w,
-        }
-    }
-}
-impl From<nalgebra::UnitQuaternion<f64>> for Quaternion {
-    fn from(value: nalgebra::UnitQuaternion<f64>) -> Self {
-        Quaternion {
-            x: value.i,
-            y: value.j,
-            z: value.k,
-            w: value.w,
-        }
+impl Default for Quaternion {
+    fn default() -> Self {
+        nalgebra::UnitQuaternion::identity().into()
     }
 }
 
-impl Quaternion {
-    pub fn into_quaternion(self) -> nalgebra::Quaternion<f64> {
-        self.into()
-    }
-    pub fn from_quaternion(quat: nalgebra::Quaternion<f64>) -> Quaternion {
-        quat.into()
-    }
-    pub fn into_unit_quaternion(self) -> nalgebra::UnitQuaternion<f64> {
-        self.into()
-    }
-    pub fn from_unit_quaternion(unit_quat: nalgebra::UnitQuaternion<f64>) -> Quaternion {
-        unit_quat.into()
-    }
+impl roslibrust::RosMessageType for Quaternion {
+    const ROS_TYPE_NAME: &'static str = "geometry_msgs/Quaternion";
 }
 
 #[inovo_msg("geometry_msgs")]

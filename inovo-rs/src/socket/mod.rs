@@ -10,7 +10,7 @@
 //! let mut bot = listener.accept_robot().unwrap();
 //! ```
 use std::net::{SocketAddr, TcpListener};
-use tracing::{debug, info};
+use tracing::info;
 
 use crate::robot::Robot;
 

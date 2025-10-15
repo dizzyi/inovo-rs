@@ -1,7 +1,6 @@
 use inovo_rs::geometry::*;
 use inovo_rs::iva::*;
 use inovo_rs::robot::MotionParam;
-use tracing::{error, info};
 
 #[test]
 pub fn iva_test() {

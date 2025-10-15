@@ -1,10 +1,7 @@
 use nalgebra::geometry::{Isometry3, UnitQuaternion};
 use nalgebra::Translation3;
 use std::collections::HashMap;
-use std::f64::consts::PI;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-
-use serde::{Deserialize, Serialize};
 
 use crate::iva::{MakeIvaRequest, MotionTarget};
 use crate::robot::FromRobot;
@@ -179,7 +176,7 @@ impl Pose {
     pub fn vector_only(&self) -> Self {
         // Self::from_vector(self.get_vector().to_owned())
         Pose {
-            position: self.position.clone(),
+            position: self.position,
             orientation: Default::default(),
         }
     }
@@ -188,7 +185,7 @@ impl Pose {
         // Self::from_euler(self.get_euler().to_owned())
         Pose {
             position: Default::default(),
-            orientation: self.orientation.clone(),
+            orientation: self.orientation,
         }
     }
 
@@ -245,7 +242,7 @@ impl Pose {
     }
     /// get the vector in `Translation3<f64>`
     fn translation(&self) -> Translation3<f64> {
-        Translation3::from(self.position.clone())
+        Translation3::from(self.position)
     }
     /// get the euler in `UnitQuaterion<f64>`
     fn unit_quaternion(&self) -> UnitQuaternion<f64> {
@@ -345,7 +342,7 @@ impl MakeIvaRequest for Pose {
 impl Point {
     pub fn new(mut point_mm: [f64; 3]) -> Self {
         for v in &mut point_mm {
-            *v = *v / 1000.0
+            *v /= 1000.0
         }
         Self {
             x: point_mm[0],

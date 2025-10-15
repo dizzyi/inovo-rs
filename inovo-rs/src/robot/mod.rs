@@ -103,7 +103,7 @@ impl Robot {
     pub fn accept_from(listener: &std::net::TcpListener) -> std::io::Result<Self> {
         let (conn, ip) = listener.accept()?;
         info!("Accept connection from : {ip}");
-        Ok(Self::new(conn)?)
+        Self::new(conn)
     }
 
     /// write a message ends with `\r\n` to the socket stream
@@ -166,10 +166,10 @@ impl IvaRobot for Robot {
         self.write(req)?;
         let res = self.read()?;
         info!("{:?}", res);
-        if res.contains(&"ERROR") {
+        if res.contains("ERROR") {
             Err(RobotError::IvaError {
                 req: inst,
-                res: res,
+                res,
                 reason: "response contains `ERROR`".to_owned(),
             })
         } else {

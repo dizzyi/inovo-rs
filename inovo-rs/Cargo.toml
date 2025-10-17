@@ -42,3 +42,4 @@ inovo-rs-macro = { workspace = true }
 [dev-dependencies]
 tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
+dotenv = { workspace = true }

@@ -147,7 +147,7 @@ impl MakeIvaRequest for Instruction {
 }
 
 /// data structure representing all robot command
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum RobotCommand {
     Synchronize,
     Sleep {
@@ -228,7 +228,7 @@ impl MakeIvaRequest for RobotCommand {
 }
 
 /// data structure representing robot motion blend mode
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum MotionMode {
     Linear,
     LinearRelative,
@@ -237,11 +237,13 @@ pub enum MotionMode {
 }
 
 /// data structure representing robot motion target
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum MotionTarget {
     Transform(Pose),
     JointCoord(JointCoord),
 }
+
+unsafe impl Send for MotionTarget {}
 
 impl MakeIvaRequest for MotionTarget {
     fn make_iva_request(&self, req: &mut IvaRequest) -> Result<(), IvaMakeRequestError> {
@@ -282,14 +284,14 @@ impl MakeIvaRequest for GripperCommand {
 }
 
 /// data structure representing psu io target
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum IOTarget {
     Beckhoff,
     Wrist,
 }
 
 /// data structure representing io command
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum IOCommand {
     Get,
     Set { state: f64 },

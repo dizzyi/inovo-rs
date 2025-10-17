@@ -41,9 +41,11 @@ impl InovoListener for std::net::TcpListener {
     }
 }
 
-pub mod tokio {
+pub mod non_blocking {
     use super::{info, LocalListenerError, SocketAddr};
     use tokio::net::TcpListener;
+
+    use crate::robot::non_blocking::Robot;
 
     pub async fn new_local_listener(port: u16) -> Result<TcpListener, LocalListenerError> {
         let ip = local_ip_address::local_ip()?;
@@ -56,13 +58,13 @@ pub mod tokio {
 
     #[async_trait::async_trait]
     pub trait InovoListener {
-        async fn accept_robot(&self) -> std::io::Result<()>;
+        async fn accept_robot(&self) -> std::io::Result<Robot>;
     }
 
     #[async_trait::async_trait]
     impl InovoListener for TcpListener {
-        async fn accept_robot(&self) -> std::io::Result<()> {
-            todo!()
+        async fn accept_robot(&self) -> std::io::Result<Robot> {
+            Robot::accept_from(self).await
         }
     }
 }

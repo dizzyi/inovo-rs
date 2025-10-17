@@ -5,17 +5,15 @@ use inovo_rs::robot::*;
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().init();
 
-    let mut bot = Robot::new_inovo(50003, "192.168.1.122")?;
+    dotenv::dotenv()?;
 
-    println!("{:?}", bot.get_current_pose());
-
-    return Ok(());
+    let mut bot = Robot::new_inovo(50003, std::env::var("DEFAULT_PSU_HOST")?)?;
 
     // robot motion
-    bot.linear(Pose::from_vector([100.0, 100.0, 100.0]))?;
+    bot.linear(&Pose::from_vector([100.0, 100.0, 100.0]))?;
 
     // robot param
-    bot.set_param(MotionParam::new().set_speed(50.0))?;
+    bot.set_param(&MotionParam::new().set_speed(50.0))?;
 
     // robot current Pose
     let _: Pose = bot.get_current_pose()?;
@@ -24,7 +22,7 @@ fn main() -> anyhow::Result<()> {
     let command_sequence = CommandSequence::new()
         .then_linear_relative(Pose::from_x(100.0))
         .then_sleep(1.0);
-    bot.sequence(command_sequence)?;
+    bot.sequence(&command_sequence)?;
 
     // gripper command
     bot.gripper_activate()?;

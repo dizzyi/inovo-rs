@@ -6,14 +6,12 @@ use tracing::info;
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
+    dotenv::dotenv()?;
+
     info!("Creating new robot.");
 
     // create a new client to the robot
-    let mut bot = Robot::new_inovo(50003, "192.168.1.122")?;
-
-    println!("{:?}", bot.get_current_pose());
-
-    return Ok(());
+    let mut bot = Robot::new_inovo(50003, std::env::var("DEFAULT_PSU_HOST")?)?;
 
     // Motion Parameter
     //
@@ -61,24 +59,24 @@ fn main() -> anyhow::Result<()> {
     // Robot Command
     //
     // set the motion of the robot
-    bot.set_param(param_1.clone())?;
+    bot.set_param(&param_1.clone())?;
     // perform a linear motion
-    bot.linear(tx)?;
+    bot.linear(&tx)?;
     // sleep
     bot.sleep(1.0)?;
     // you can chain command
     // it will execute on at a time
-    bot.linear_relative(vz)?
+    bot.linear_relative(&vz)?
         .sleep(1.0)?
-        .set_param(param_2.clone())?
+        .set_param(&param_2.clone())?
         .joint(ty)?
         .sleep(1.0)?
-        .joint_relative(vxyz)?
+        .joint_relative(&vxyz)?
         .sleep(1.0)?
         // joint motion can take both `JointCoord` and `Transform` as target
         // while other can only take `Transform` as target
         .joint(j1.clone())?
-        .set_param(param_3.clone())?
+        .set_param(&param_3)?
         .joint(home_transform)?;
 
     // you can also create a command sequence for all of the command
@@ -95,29 +93,29 @@ fn main() -> anyhow::Result<()> {
         .then_joint(j2.clone())
         .then_joint(home_joint_coord.clone());
     // in this case the robot will execute all of them before responing
-    bot.sequence(command_sequence.clone())?;
+    bot.sequence(&command_sequence)?;
 
     // Context
     //
     // the `with` keywork denote context manager
     // it will create a RAII guard that reverse the motion automatically
     // after the guard is drop
-    bot.with_linear(tx)?;
+    bot.with_linear(&tx)?;
     {
-        let guard = bot.with_linear_relative(vz)?;
+        let guard = bot.with_linear_relative(&vz)?;
         // do some other stuff
     } // the robot motion will automatically reverse here
       //
       // you can chain context like this
-    bot.with_linear_relative(Pose::from_x(100.0))?
-        .with_linear_relative(Pose::from_y(100.0))?
-        .with_linear_relative(Pose::from_z(100.0))?;
+    bot.with_linear_relative(&Pose::from_x(100.0))?
+        .with_linear_relative(&Pose::from_y(100.0))?
+        .with_linear_relative(&Pose::from_z(100.0))?;
     //
     //
     //
     {
         let mut guard_1 = bot.with_joint(ty)?;
-        let mut guard_2 = guard_1.with_joint_relative(rz)?;
+        let mut guard_2 = guard_1.with_joint_relative(&rz)?;
         let guard_3 = guard_2.with_joint(j1.clone())?;
         // do some other stuff
         //
@@ -130,7 +128,7 @@ fn main() -> anyhow::Result<()> {
       //
       //
       // you can even do it with a while sequence
-    bot.with_sequence(command_sequence)?;
+    bot.with_sequence(&command_sequence)?;
 
     // Gripper interface
     //

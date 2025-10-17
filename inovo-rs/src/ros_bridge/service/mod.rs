@@ -7,7 +7,7 @@ pub mod robot;
 pub mod sequence;
 
 #[async_trait::async_trait]
-pub trait Service {
+pub trait Service: Send {
     const NAME: &'static str;
     type Req: RosServiceType<Request = Self::Req>;
 

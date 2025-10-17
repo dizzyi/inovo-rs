@@ -22,6 +22,7 @@ async-trait = "0.1.89"
 inovo-rs-macro = { path = "./inovo-rs-macro" }
 inovo-rs = { path = "./inovo-rs" }
 
+dotenv = { version = "0.15.0" }
 
 tracing-subscriber = { version = "0.3.20" }
 anyhow = { version = "1.0.100" }

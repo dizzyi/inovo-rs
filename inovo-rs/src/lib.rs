@@ -208,5 +208,28 @@ pub mod geometry;
 pub mod iva;
 pub mod robot;
 pub mod ros_bridge;
-pub mod util;
 pub mod socket;
+pub mod util;
+
+mod prelude_common {
+    pub use crate::geometry::{JointCoord, Pose};
+    pub use crate::robot::{CommandSequence, FromRobot, MotionParam, RobotError};
+    pub use crate::ros_bridge::{
+        package::*, service, service::Service, topic, topic::Topic, InovoRosBridge,
+    };
+    pub use crate::socket::LocalListenerError;
+    pub use crate::util::{self, ToWsUrl};
+}
+
+pub mod prelude {
+    pub use crate::context::*;
+    pub use crate::prelude_common::*;
+    pub use crate::robot::{IvaContext, IvaRobot, Robot};
+    pub use crate::socket::{new_local_listener, InovoListener};
+}
+
+pub mod prelude_non_blocking {
+    pub use crate::prelude_common::*;
+    pub use crate::robot::non_blocking::{IvaRobot, Robot};
+    pub use crate::socket::non_blocking::{new_local_listener, InovoListener};
+}

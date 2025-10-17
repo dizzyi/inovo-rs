@@ -131,6 +131,8 @@ pub fn inovo_service(attr: TokenStream, item: TokenStream) -> TokenStream {
             const NAME: &'static str = #topic_name;
             type Req = #topic_msg_type;
         }
+
+        unsafe impl Send for #ident {}
     }
     .into()
 }

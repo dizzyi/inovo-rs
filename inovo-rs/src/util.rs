@@ -1,11 +1,19 @@
 use roslibrust::rosbridge::{ClientHandle, ClientHandleOptions};
 
+pub trait ToWsUrl {
+    fn to_ws_url(self) -> String;
+}
+
+impl<T: Into<String>> ToWsUrl for T {
+    fn to_ws_url(self) -> String {
+        format!("ws://{}:9090", self.into())
+    }
+}
+
 pub async fn rosbridge_is_alive(host: impl Into<String>, timeout: std::time::Duration) -> bool {
-    ClientHandle::new_with_options(
-        ClientHandleOptions::new(format!("ws://{}:9090", host.into())).timeout(timeout),
-    )
-    .await
-    .is_ok()
+    ClientHandle::new_with_options(ClientHandleOptions::new(host.to_ws_url()).timeout(timeout))
+        .await
+        .is_ok()
 }
 
 #[cfg(feature = "scan")]

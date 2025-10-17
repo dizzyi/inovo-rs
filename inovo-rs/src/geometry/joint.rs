@@ -7,7 +7,7 @@ use crate::iva::{MakeIvaRequest, MotionTarget};
 use crate::robot::FromRobot;
 
 /// A structure representing a 6 joint coordinate, in radian
-#[derive(Debug, Clone, Deserialize, Serialize, Default, Deref, DerefMut)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, Default, Deref, DerefMut)]
 pub struct JointCoord(pub [f64; 6]);
 
 impl JointCoord {

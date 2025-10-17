@@ -23,6 +23,10 @@ pub trait Topic {
     async fn subscribe(client: &ClientHandle) -> Result<Subscriber<Self::Message>> {
         client.subscribe(Self::NAME).await
     }
+
+    async fn advertise(client: &ClientHandle) -> Result<Publisher<Self::Message>> {
+        client.advertise(Self::NAME).await
+    }
 }
 
 #[inovo_topic("/rosout", rosgraph_msgs::Log)]

@@ -109,7 +109,7 @@ impl JointCoord {
     }
 
     pub fn scale(&self, factor: f64) -> JointCoord {
-        self.clone().into_array().map(|v| v * factor).into()
+        (*self).into_array().map(|v| v * factor).into()
     }
 
     /// interpolate two joint coord with a parameter t, scale from 0 to 1

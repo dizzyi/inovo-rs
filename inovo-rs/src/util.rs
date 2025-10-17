@@ -44,8 +44,7 @@ mod scan {
         let mut record = scan_all_interfaces()
             .await
             .into_iter()
-            .map(|i| i.subnet_record.into_iter().map(|i| i.psu).flatten())
-            .flatten()
+            .flat_map(|i| i.subnet_record.into_iter().flat_map(|i| i.psu))
             .collect::<Vec<_>>();
         record.sort();
         record

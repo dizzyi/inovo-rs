@@ -77,5 +77,5 @@ async fn rosbridge() -> anyhow::Result<()> {
         .await?;
     assert!(res.success, "psu poweroff failed due to : {}", res.message);
 
-    return Ok(());
+    Ok(())
 }

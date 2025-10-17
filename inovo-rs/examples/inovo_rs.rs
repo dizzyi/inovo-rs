@@ -53,8 +53,8 @@ fn main() -> anyhow::Result<()> {
     let vxyz = Pose::from_vector([100.0, 100.0, 100.0]);
     let tx = home_transform.then_x(100.0);
     let ty = home_transform.then_y(100.0);
-    let j1 = home_joint_coord.clone().then_j1(90.0);
-    let j2 = j1.clone() + JointCoord::from([10.0, 10.0, 10.0, 10.0, 10.0, 10.0]);
+    let j1 = home_joint_coord.then_j1(90.0);
+    let j2 = j1 + JointCoord::from([10.0, 10.0, 10.0, 10.0, 10.0, 10.0]);
 
     // Robot Command
     //
@@ -75,23 +75,23 @@ fn main() -> anyhow::Result<()> {
         .sleep(1.0)?
         // joint motion can take both `JointCoord` and `Transform` as target
         // while other can only take `Transform` as target
-        .joint(j1.clone())?
+        .joint(j1)?
         .set_param(&param_3)?
         .joint(home_transform)?;
 
     // you can also create a command sequence for all of the command
     let command_sequence = CommandSequence::new()
-        .then_set_param(param_1.clone())
+        .then_set_param(param_1)
         .then_linear(home_transform)
         .then_sleep(1.0)
         .then_linear(tx)
         .then_linear_relative(vz)
-        .then_set_param(param_2.clone())
+        .then_set_param(param_2)
         .then_joint(ty)
         .then_joint_relative(vz)
-        .then_set_param(param_3.clone())
-        .then_joint(j2.clone())
-        .then_joint(home_joint_coord.clone());
+        .then_set_param(param_3)
+        .then_joint(j2)
+        .then_joint(home_joint_coord);
     // in this case the robot will execute all of them before responing
     bot.sequence(&command_sequence)?;
 
@@ -116,7 +116,7 @@ fn main() -> anyhow::Result<()> {
     {
         let mut guard_1 = bot.with_joint(ty)?;
         let mut guard_2 = guard_1.with_joint_relative(&rz)?;
-        let guard_3 = guard_2.with_joint(j1.clone())?;
+        let guard_3 = guard_2.with_joint(j1)?;
         // do some other stuff
         //
         // you can early drop the guard and its motion will be reverse

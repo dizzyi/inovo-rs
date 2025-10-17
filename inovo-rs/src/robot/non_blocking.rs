@@ -217,7 +217,7 @@ pub trait IvaRobot {
     }
     /// get data from data dict in robot runtime
     async fn get_data<T: FromRobot>(&mut self, key: String) -> Result<T, RobotError> {
-        self.get(GetTarget::Data { key: key.into() }).await
+        self.get(GetTarget::Data { key }).await
     }
     /// get data from robot
     async fn get<T: FromRobot>(&mut self, get_target: GetTarget) -> Result<T, RobotError> {
@@ -264,7 +264,7 @@ pub trait IvaRobot {
     /// set the robot gripper to a predefined label
     async fn gripper_set(&mut self, label: String) -> Result<&mut Self, RobotError> {
         self.instruction_assert_ok(&Instruction::gripper(GripperCommand::Set {
-            label: label.into(),
+            label,
         }))
         .await
     }

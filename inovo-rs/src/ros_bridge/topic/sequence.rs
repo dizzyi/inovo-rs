@@ -1,8 +1,10 @@
 use super::super::*;
 
-// TODO Blocky
+#[inovo_topic("/sequence/blockly", commander_msgs::Blockly)]
+pub struct Blocky;
 
-// TODO ConfigurationsMatch
+#[inovo_topic("/sequence/configurations_match", std_msgs::Bool)]
+pub struct ConfigurationsMatch;
 
 #[inovo_topic("/sequence/errors", commander_msgs::BlockError)]
 pub struct Errors;
@@ -12,9 +14,12 @@ pub struct Log;
 
 // TODO ParameterDescriptions
 // TODO ParameterUpdates
-// TODO Prompt
+
+#[inovo_topic("/sequence/prompt", commander_msgs::Prompt)]
+pub struct Prompt;
 
 #[inovo_topic("/sequence/runtime_state", commander_msgs::RuntimeState)]
 pub struct RuntimeState;
 
-// TODO Scene
+#[inovo_topic("/sequence/scene", commander_msgs::Blockly)]
+pub struct Scene;

@@ -21,9 +21,17 @@ async fn main() {
     info!("ClientHandle connected");
 
     if true {
+        let projects =
+            service::sequence::ListProject::call(&client, commander_msgs::ListProject {})
+                .await
+                .unwrap();
+        println!("{:?}", projects);
+    }
+
+    if true {
         let io = topic::beckhoff_io::IO::subscribe(&client).await.unwrap();
 
-        loop {
+        for i in 0..3 {
             println!("{:?}", io.next().await);
         }
     }

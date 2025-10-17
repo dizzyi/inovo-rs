@@ -208,4 +208,5 @@ pub mod geometry;
 pub mod iva;
 pub mod robot;
 pub mod ros_bridge;
+pub mod util;
 pub mod socket;

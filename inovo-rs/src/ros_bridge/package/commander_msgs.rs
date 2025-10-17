@@ -227,19 +227,27 @@ pub struct GetVariable {
 // TODO Insert
 
 #[inovo_msg("commander_msgs")]
-#[inovo_req(ProjectMeta)]
-pub struct ListProject;
-
-// TODO NewProject
+pub struct ListProjectResponse {
+    pub projects: Vec<ProjectMeta>,
+}
 
 #[inovo_msg("commander_msgs")]
-// pub struct ProjectResponse {
-//     pub success: bool,
-//     pub reason: String,
-//     pub message: String
-// }
-pub struct ProjectResponse(serde_json::Value); // TODO
+#[inovo_req(ListProjectResponse)]
+pub struct ListProject;
 
+#[inovo_msg("commander_msgs")]
+#[inovo_req(ProjectResponse)]
+pub struct NewProject;
+
+#[inovo_msg("commander_msgs")]
+pub struct ProjectResponse {
+    pub success: bool,
+    pub reason: String,
+    pub message: String,
+}
+
+#[inovo_msg("commander_msgs")]
+#[inovo_req(ProjectResponse)]
 pub struct Project {
     pub name: String,
     pub force: bool,

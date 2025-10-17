@@ -6,7 +6,8 @@ pub struct Continue;
 #[inovo_service("/sequence/debug", commander_msgs::RunSequence)]
 pub struct Debug;
 
-// TODO DeleteProject
+#[inovo_service("/sequence/delete_project", commander_msgs::Project)]
+pub struct DeleteProject;
 
 #[inovo_service("/sequence/delete_var", commander_msgs::DeleteVariable)]
 pub struct DeleteVar;
@@ -18,11 +19,14 @@ pub struct GetVar;
 
 // TODO ImportConfig
 
-// TODO ListProject
+#[inovo_service("/sequence/list_projects", commander_msgs::ListProject)]
+pub struct ListProject;
 
-// TODO NewProject
+#[inovo_service("/sequence/new_project", commander_msgs::NewProject)]
+pub struct NewProject;
 
-// TODO OpenProject
+#[inovo_service("/sequence/open_project", commander_msgs::ListProject)]
+pub struct OpenProject;
 
 #[inovo_service("/sequence/pause", std_srvs::Trigger)]
 pub struct Pause;
@@ -33,7 +37,8 @@ pub struct Pause;
 
 // TODO RevertProject
 
-// TODO SaveProject
+#[inovo_service("/sequence/save_project", commander_msgs::Project)]
+pub struct SaveProject;
 
 // TODO SetCurrentBlock
 
@@ -42,8 +47,11 @@ pub struct Pause;
 #[inovo_service("/sequence/set_var", commander_msgs::SetVariable)]
 pub struct SetVar;
 
-#[inovo_service("/sequence/start", commander_msgs::RunSequenceRequest)]
+#[inovo_service("/sequence/start", commander_msgs::RunSequence)]
 pub struct Start;
+
+#[inovo_service("/sequence/start", commander_msgs::RunSequenceRequest)]
+pub struct StartRequest;
 
 #[inovo_service("/sequence/step", std_srvs::Trigger)]
 pub struct Step;

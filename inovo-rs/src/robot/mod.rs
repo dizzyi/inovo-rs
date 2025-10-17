@@ -145,8 +145,12 @@ impl Robot {
                 roslibrust::rosbridge::ClientHandle::new(format!("ws://{}:9090", host.clone()))
                     .await
                     .unwrap();
-            let req = package::commander_msgs::RunSequenceRequest {
+            // let req = package::commander_msgs::RunSequenceRequest {
+            //     procedure_name: "iva".to_owned(),
+            // };
+            let req = package::commander_msgs::RunSequence {
                 procedure_name: "iva".to_owned(),
+                ..Default::default()
             };
             println!("{:?}", serde_json::to_string(&req));
             crate::ros_bridge::service::sequence::Start::call(&client, req)

@@ -2,11 +2,10 @@ use std::net::SocketAddr;
 
 use crate::geometry::{JointCoord, Pose};
 use crate::iva::*;
-use crate::ros_bridge::service::Service;
-use crate::ros_bridge::{package::commander_msgs, service};
+use crate::ros_bridge::start_seq;
 use crate::socket;
 use crate::socket::non_blocking::InovoListener;
-use crate::util::{InovorsError, ToWsUrl};
+use crate::util::InovorsError;
 
 use super::{CommandSequence, FromRobot, MotionParam};
 
@@ -68,17 +67,9 @@ impl Robot {
     }
 
     pub async fn new_inovo(port: u16, host: impl Into<String>) -> Result<Self, InovorsError> {
-        let host = host.into();
-
         let listener = socket::non_blocking::new_local_listener(port).await?;
 
-        {
-            let client = roslibrust::rosbridge::ClientHandle::new(host.to_ws_url()).await?;
-            let req = commander_msgs::RunSequenceRequest {
-                procedure_name: "iva".to_string(),
-            };
-            service::sequence::StartRequest::call(&client, req).await?;
-        }
+        start_seq(host, "iva").await?;
 
         let bot = listener.accept_robot().await?;
 

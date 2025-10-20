@@ -2,6 +2,8 @@
 #[derive(Debug, thiserror::Error)]
 pub enum InovorsError {
     #[error(transparent)]
+    LocalIPError(#[from] local_ip_address::Error),
+    #[error(transparent)]
     SocketError(#[from] std::io::Error),
     #[error(transparent)]
     RosError(#[from] roslibrust::Error),
@@ -9,8 +11,8 @@ pub enum InovorsError {
     IvaMake(#[from] IvaMakeRequestError),
     #[error(transparent)]
     JsonSer(#[from] serde_json::Error),
-    #[error(transparent)]
-    LocalIPError(#[from] local_ip_address::Error),
+    #[error("PSU Error")]
+    PSUError(String),
     #[error("Response Error")]
     IvaError {
         req: Instruction,

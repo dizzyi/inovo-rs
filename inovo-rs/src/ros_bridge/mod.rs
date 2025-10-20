@@ -9,7 +9,7 @@ pub use package::*;
 use service::*;
 use topic::*;
 
-use crate::util::ToWsUrl;
+use crate::util::{InovorsError, ToWsUrl};
 
 use arm_msgs::*;
 use commander_msgs::*;
@@ -20,7 +20,7 @@ use std_srvs::*;
 pub use roslibrust::rosbridge::{
     ClientHandle, ClientHandleOptions, Publisher, ServiceClient, ServiceHandle, Subscriber,
 };
-pub use roslibrust::{Error, Publish, RosMessageType, RosServiceType, Service, ServiceError};
+pub use roslibrust::{self, Error, Publish, RosMessageType, RosServiceType, ServiceError};
 
 use inovo_rs_macro::*;
 
@@ -30,6 +30,39 @@ pub async fn rosbridge_connect(
 ) -> Result<ClientHandle, roslibrust::Error> {
     ClientHandle::new_with_options(ClientHandleOptions::new(host.to_ws_url()).timeout(timeout))
         .await
+}
+
+pub async fn start_seq(
+    host: impl Into<String>,
+    procedure_name: impl Into<String>,
+) -> Result<(), InovorsError> {
+    let procedure_name = procedure_name.into();
+
+    let client = rosbridge_connect(host, std::time::Duration::from_millis(5000)).await?;
+
+    let req = package::commander_msgs::RunSequence {
+        procedure_name: procedure_name.clone(),
+        ..Default::default()
+    };
+    let response1 = service::sequence::Start::call(&client, req).await?;
+    if response1.success {
+        return Ok(());
+    }
+
+    let req = package::commander_msgs::RunSequenceRequest {
+        procedure_name: procedure_name,
+    };
+    let response2 = service::sequence::StartRequest::call(&client, req).await?;
+    if response2.success {
+        return Ok(());
+    }
+
+    let msg = format!(
+        "start error msg: {}, start-request error msg: {}",
+        response1.message, response2.message
+    );
+
+    Err(InovorsError::PSUError(msg))
 }
 
 #[async_trait::async_trait]

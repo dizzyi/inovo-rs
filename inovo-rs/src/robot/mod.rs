@@ -5,12 +5,11 @@ use std::net::{SocketAddr, TcpStream};
 use tracing::{debug, info};
 
 use crate::context::{Context, ContextGuard};
+use crate::geometry::*;
 use crate::iva::*;
-use crate::ros_bridge::service::Service;
 use crate::ros_bridge::*;
 use crate::socket::{self, InovoListener};
 use crate::util::InovorsError;
-use crate::{geometry::*, ros_bridge};
 
 mod command_sequence;
 mod motion_param;
@@ -138,33 +137,7 @@ impl Robot {
 
         tokio::runtime::Runtime::new()
             .unwrap()
-            .block_on(async move {
-                let client =
-                    match rosbridge_connect(host, std::time::Duration::from_millis(5000)).await {
-                        Ok(c) => c,
-                        Err(e) => return Err(InovorsError::RosError(e)),
-                    };
-
-                let req = package::commander_msgs::RunSequence {
-                    procedure_name: "iva".to_owned(),
-                    ..Default::default()
-                };
-                let response = ros_bridge::service::sequence::Start::call(&client, req).await?;
-                if response.success {
-                    return Ok(());
-                }
-
-                let req = package::commander_msgs::RunSequenceRequest {
-                    procedure_name: "iva".to_owned(),
-                };
-                let response =
-                    ros_bridge::service::sequence::StartRequest::call(&client, req).await?;
-                if response.success {
-                    return Ok(());
-                }
-
-                Ok(())
-            })?;
+            .block_on(async move { start_seq(host, "iva").await })?;
 
         let bot = listener.accept_robot()?;
 

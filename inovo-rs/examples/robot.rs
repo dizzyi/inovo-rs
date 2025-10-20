@@ -5,7 +5,7 @@ use inovo_rs::robot::*;
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().init();
 
-    dotenv::dotenv()?;
+    dotenvy::dotenv()?;
 
     let mut bot = Robot::new_inovo(50003, std::env::var("DEFAULT_PSU_HOST")?)?;
 

@@ -263,10 +263,8 @@ pub trait IvaRobot {
     }
     /// set the robot gripper to a predefined label
     async fn gripper_set(&mut self, label: String) -> Result<&mut Self, RobotError> {
-        self.instruction_assert_ok(&Instruction::gripper(GripperCommand::Set {
-            label,
-        }))
-        .await
+        self.instruction_assert_ok(&Instruction::gripper(GripperCommand::Set { label }))
+            .await
     }
     /// get the robot gripper width
     async fn gripper_get(&mut self) -> Result<f64, RobotError> {

@@ -12,7 +12,7 @@ async fn main() {
 async fn rosbridge() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
-    dotenv::dotenv()?;
+    dotenvy::dotenv()?;
 
     let psu_host = std::env::var("DEFAULT_PSU_HOST")?;
 

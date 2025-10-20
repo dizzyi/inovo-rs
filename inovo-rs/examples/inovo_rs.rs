@@ -6,7 +6,7 @@ use tracing::info;
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
-    dotenv::dotenv()?;
+    dotenvy::dotenv()?;
 
     info!("Creating new robot.");
 
@@ -102,7 +102,7 @@ fn main() -> anyhow::Result<()> {
     // after the guard is drop
     bot.with_linear(&tx)?;
     {
-        let guard = bot.with_linear_relative(&vz)?;
+        let _guard = bot.with_linear_relative(&vz)?;
         // do some other stuff
     } // the robot motion will automatically reverse here
       //

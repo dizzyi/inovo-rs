@@ -105,7 +105,7 @@ pub fn inovo_topic(attr: TokenStream, item: TokenStream) -> TokenStream {
     quote! {
         #item_struct
 
-        impl crate::ros_bridge::Topic for #ident {
+        impl crate::ros_bridge::topic::Topic for #ident {
             const NAME: &'static str = #topic_name;
             type Message = #topic_msg_type;
         }
@@ -127,7 +127,7 @@ pub fn inovo_service(attr: TokenStream, item: TokenStream) -> TokenStream {
     quote! {
         #item_struct
 
-        impl crate::ros_bridge::Service for #ident {
+        impl crate::ros_bridge::service::Service for #ident {
             const NAME: &'static str = #topic_name;
             type Req = #topic_msg_type;
         }

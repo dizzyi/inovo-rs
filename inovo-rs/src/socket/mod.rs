@@ -13,16 +13,9 @@ use std::net::{SocketAddr, TcpListener};
 use tracing::info;
 
 use crate::robot::Robot;
+use crate::util::InovorsError;
 
-#[derive(Debug, thiserror::Error)]
-pub enum LocalListenerError {
-    #[error(transparent)]
-    LocalIPError(#[from] local_ip_address::Error),
-    #[error(transparent)]
-    StdIOError(#[from] std::io::Error),
-}
-
-pub fn new_local_listener(port: u16) -> Result<std::net::TcpListener, LocalListenerError> {
+pub fn new_local_listener(port: u16) -> Result<std::net::TcpListener, InovorsError> {
     let ip = local_ip_address::local_ip()?;
     let addr = SocketAddr::from((ip, port));
     info!("creating new socket @{}", addr);
@@ -42,12 +35,12 @@ impl InovoListener for std::net::TcpListener {
 }
 
 pub mod non_blocking {
-    use super::{info, LocalListenerError, SocketAddr};
+    use super::{info, InovorsError, SocketAddr};
     use tokio::net::TcpListener;
 
     use crate::robot::non_blocking::Robot;
 
-    pub async fn new_local_listener(port: u16) -> Result<TcpListener, LocalListenerError> {
+    pub async fn new_local_listener(port: u16) -> Result<TcpListener, InovorsError> {
         let ip = local_ip_address::local_ip()?;
         let addr = SocketAddr::from((ip, port));
         info!("creating new socket @{}", addr);

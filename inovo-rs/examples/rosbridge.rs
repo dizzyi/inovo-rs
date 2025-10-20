@@ -1,7 +1,5 @@
 use inovo_rs::prelude_non_blocking::*;
 
-use roslibrust::rosbridge::ClientHandleOptions;
-
 use tracing::info;
 
 #[tokio::main]
@@ -16,10 +14,7 @@ async fn rosbridge() -> anyhow::Result<()> {
 
     let psu_host = std::env::var("DEFAULT_PSU_HOST")?;
 
-    let client = roslibrust::rosbridge::ClientHandle::new_with_options(
-        ClientHandleOptions::new(psu_host.to_ws_url()).timeout(std::time::Duration::from_secs(5)),
-    )
-    .await?;
+    let client = rosbridge_connect(psu_host, std::time::Duration::from_secs(5)).await?;
     info!("ClientHandle connected");
 
     // Topics

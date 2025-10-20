@@ -213,12 +213,12 @@ pub mod util;
 
 mod prelude_common {
     pub use crate::geometry::{JointCoord, Pose};
-    pub use crate::robot::{CommandSequence, FromRobot, MotionParam, RobotError};
+    pub use crate::robot::{CommandSequence, FromRobot, MotionParam};
     pub use crate::ros_bridge::{
-        package::*, service, service::Service, topic, topic::Topic, InovoRosBridge,
+        package::*, rosbridge_connect, service, service::Service, topic, topic::Topic,
+        InovoRosBridge,
     };
-    pub use crate::socket::LocalListenerError;
-    pub use crate::util::{self, ToWsUrl};
+    pub use crate::util::{self, InovorsError, ToWsUrl};
 }
 
 pub mod prelude {

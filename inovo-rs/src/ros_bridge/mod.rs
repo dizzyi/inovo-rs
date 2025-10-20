@@ -9,16 +9,28 @@ pub use package::*;
 use service::*;
 use topic::*;
 
+use crate::util::ToWsUrl;
+
 use arm_msgs::*;
 use commander_msgs::*;
 use geometry_msgs::*;
 use psu_msgs::*;
 use std_srvs::*;
 
-use roslibrust::rosbridge::{ClientHandle, Publisher, ServiceClient, Subscriber};
-use roslibrust::RosServiceType;
+pub use roslibrust::rosbridge::{
+    ClientHandle, ClientHandleOptions, Publisher, ServiceClient, ServiceHandle, Subscriber,
+};
+pub use roslibrust::{Error, Publish, RosMessageType, RosServiceType, Service, ServiceError};
 
 use inovo_rs_macro::*;
+
+pub async fn rosbridge_connect(
+    host: impl Into<String>,
+    timeout: std::time::Duration,
+) -> Result<ClientHandle, roslibrust::Error> {
+    ClientHandle::new_with_options(ClientHandleOptions::new(host.to_ws_url()).timeout(timeout))
+        .await
+}
 
 #[async_trait::async_trait]
 pub trait InovoRosBridge {

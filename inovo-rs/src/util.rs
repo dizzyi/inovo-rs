@@ -1,5 +1,23 @@
-use roslibrust::rosbridge::{ClientHandle, ClientHandleOptions};
-
+/// Representing inovo-rs Error
+#[derive(Debug, thiserror::Error)]
+pub enum InovorsError {
+    #[error(transparent)]
+    SocketError(#[from] std::io::Error),
+    #[error(transparent)]
+    RosError(#[from] roslibrust::Error),
+    #[error(transparent)]
+    IvaMake(#[from] IvaMakeRequestError),
+    #[error(transparent)]
+    JsonSer(#[from] serde_json::Error),
+    #[error(transparent)]
+    LocalIPError(#[from] local_ip_address::Error),
+    #[error("Response Error")]
+    IvaError {
+        req: Instruction,
+        res: String,
+        reason: String,
+    },
+}
 pub trait ToWsUrl {
     fn to_ws_url(self) -> String;
 }
@@ -10,18 +28,14 @@ impl<T: Into<String>> ToWsUrl for T {
     }
 }
 
-pub async fn rosbridge_is_alive(host: impl Into<String>, timeout: std::time::Duration) -> bool {
-    ClientHandle::new_with_options(ClientHandleOptions::new(host.to_ws_url()).timeout(timeout))
-        .await
-        .is_ok()
-}
-
 #[cfg(feature = "scan")]
 pub use scan::*;
 
+use crate::iva::{Instruction, IvaMakeRequestError};
+
 #[cfg(feature = "scan")]
 mod scan {
-    use super::rosbridge_is_alive;
+    use crate::ros_bridge::rosbridge_connect;
     use netdev::prelude::*;
     use std::net::Ipv4Addr;
     use tracing::warn;
@@ -74,7 +88,10 @@ mod scan {
 
                 while i.contains(&ip) {
                     join_set.spawn(async move {
-                        if !rosbridge_is_alive(ip.to_string(), SCAN_TIMEOUT).await {
+                        if rosbridge_connect(ip.to_string(), SCAN_TIMEOUT)
+                            .await
+                            .is_err()
+                        {
                             return None;
                         }
                         let host = tokio::task::block_in_place(move || {

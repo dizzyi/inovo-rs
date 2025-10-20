@@ -6,9 +6,9 @@ use crate::ros_bridge::service::Service;
 use crate::ros_bridge::{package::commander_msgs, service};
 use crate::socket;
 use crate::socket::non_blocking::InovoListener;
-use crate::util::ToWsUrl;
+use crate::util::{InovorsError, ToWsUrl};
 
-use super::{CommandSequence, FromRobot, MotionParam, RobotError};
+use super::{CommandSequence, FromRobot, MotionParam};
 
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 use tracing::{debug, info};
@@ -67,7 +67,7 @@ impl Robot {
         Ok(msg)
     }
 
-    pub async fn new_inovo(port: u16, host: impl Into<String>) -> Result<Self, RobotError> {
+    pub async fn new_inovo(port: u16, host: impl Into<String>) -> Result<Self, InovorsError> {
         let host = host.into();
 
         let listener = socket::non_blocking::new_local_listener(port).await?;
@@ -88,13 +88,13 @@ impl Robot {
 
 #[async_trait::async_trait]
 impl IvaRobot for Robot {
-    async fn instruction(&mut self, inst: &Instruction) -> Result<String, RobotError> {
+    async fn instruction(&mut self, inst: &Instruction) -> Result<String, InovorsError> {
         let req = inst.to_iva_request()?.to_string_pretty();
         self.write(req).await?;
         let res = self.read().await?;
         info!("{:?}", res);
         if res.contains("ERROR") {
-            Err(RobotError::IvaError {
+            Err(InovorsError::IvaError {
                 req: inst.clone(),
                 res,
                 reason: "response contains `ERROR`".to_owned(),
@@ -107,13 +107,16 @@ impl IvaRobot for Robot {
 
 #[async_trait::async_trait]
 pub trait IvaRobot {
-    async fn instruction(&mut self, inst: &Instruction) -> Result<String, RobotError>;
+    async fn instruction(&mut self, inst: &Instruction) -> Result<String, InovorsError>;
 
-    async fn instruction_assert_ok(&mut self, inst: &Instruction) -> Result<&mut Self, RobotError> {
+    async fn instruction_assert_ok(
+        &mut self,
+        inst: &Instruction,
+    ) -> Result<&mut Self, InovorsError> {
         let res = self.instruction(inst).await?;
         match res.as_str() {
             "OK" => Ok(self),
-            _ => Err(RobotError::IvaError {
+            _ => Err(InovorsError::IvaError {
                 req: inst.clone(),
                 res,
                 reason: "response assert `OK` failed".to_owned(),
@@ -125,11 +128,11 @@ pub trait IvaRobot {
     async fn instruction_return<T: FromRobot>(
         &mut self,
         inst: &Instruction,
-    ) -> Result<T, RobotError> {
+    ) -> Result<T, InovorsError> {
         let res = self.instruction(inst).await?;
         match T::from_robot(&res) {
             Ok(t) => Ok(t),
-            Err(s) => Err(RobotError::IvaError {
+            Err(s) => Err(InovorsError::IvaError {
                 req: inst.clone(),
                 res,
                 reason: format!("Failed to parse from robot due to : {}", s),
@@ -138,24 +141,28 @@ pub trait IvaRobot {
     }
 
     /// instruct the robot to execute a [`RobotCommand`]
-    async fn execute(&mut self, robot_command: &RobotCommand) -> Result<&mut Self, RobotError> {
+    async fn execute(&mut self, robot_command: &RobotCommand) -> Result<&mut Self, InovorsError> {
         self.instruction_assert_ok(&Instruction::exec(*robot_command))
             .await
     }
 
     /// instruct the robot to sleep
-    async fn sleep(&mut self, second: f64) -> Result<&mut Self, RobotError> {
+    async fn sleep(&mut self, second: f64) -> Result<&mut Self, InovorsError> {
         self.execute(&RobotCommand::Sleep { second }).await
     }
 
     /// instruct the robot to set the motion param
-    async fn set_param(&mut self, motion_param: &MotionParam) -> Result<&mut Self, RobotError> {
+    async fn set_param(&mut self, motion_param: &MotionParam) -> Result<&mut Self, InovorsError> {
         self.execute(&RobotCommand::SetParameter(*motion_param))
             .await
     }
 
     /// instruct the robot to execute a motion
-    async fn motion(&mut self, mode: &MotionMode, target: &Pose) -> Result<&mut Self, RobotError> {
+    async fn motion(
+        &mut self,
+        mode: &MotionMode,
+        target: &Pose,
+    ) -> Result<&mut Self, InovorsError> {
         self.execute(&RobotCommand::Motion {
             motion_mode: *mode,
             target: (*target).into(),
@@ -164,18 +171,18 @@ pub trait IvaRobot {
     }
 
     /// instruct the robot to perform a linear move
-    async fn linear(&mut self, target: &Pose) -> Result<&mut Self, RobotError> {
+    async fn linear(&mut self, target: &Pose) -> Result<&mut Self, InovorsError> {
         self.motion(&MotionMode::Linear, target).await
     }
     /// instruct the robot to perform a linear relative move
-    async fn linear_relative(&mut self, target: &Pose) -> Result<&mut Self, RobotError> {
+    async fn linear_relative(&mut self, target: &Pose) -> Result<&mut Self, InovorsError> {
         self.motion(&MotionMode::LinearRelative, target).await
     }
     /// instruct the robot to perform a joint move, can take both [`Transform`] and [`JointCoord`] as target
     async fn joint(
         &mut self,
         target: impl Into<MotionTarget> + Send,
-    ) -> Result<&mut Self, RobotError> {
+    ) -> Result<&mut Self, InovorsError> {
         self.execute(&RobotCommand::Motion {
             motion_mode: MotionMode::Joint,
             target: target.into(),
@@ -183,24 +190,24 @@ pub trait IvaRobot {
         .await
     }
     /// instruct the robot to perform a joint relative move
-    async fn joint_relative(&mut self, target: &Pose) -> Result<&mut Self, RobotError> {
+    async fn joint_relative(&mut self, target: &Pose) -> Result<&mut Self, InovorsError> {
         self.motion(&MotionMode::JointRelative, target).await
     }
 
     /// instruct the robot to enqueue a [`RobotCommand`]
-    async fn enqueue(&mut self, robot_command: &RobotCommand) -> Result<&mut Self, RobotError> {
+    async fn enqueue(&mut self, robot_command: &RobotCommand) -> Result<&mut Self, InovorsError> {
         self.instruction_assert_ok(&Instruction::enqueue(*robot_command))
             .await
     }
     /// instruct the robot to dequeue all [`RobotCommand`]
-    async fn dequeue(&mut self) -> Result<&mut Self, RobotError> {
+    async fn dequeue(&mut self) -> Result<&mut Self, InovorsError> {
         self.instruction_assert_ok(&Instruction::dequeue()).await
     }
     /// instruct the robot to execute a [`CommandSequence`]
     async fn sequence(
         &mut self,
         command_sequence: &CommandSequence,
-    ) -> Result<&mut Self, RobotError> {
+    ) -> Result<&mut Self, InovorsError> {
         for robot_command in command_sequence.iter() {
             self.enqueue(robot_command).await?;
         }
@@ -208,19 +215,19 @@ pub trait IvaRobot {
     }
 
     /// get the current [`Pose`] of the robot
-    async fn get_current_pose(&mut self) -> Result<Pose, RobotError> {
+    async fn get_current_pose(&mut self) -> Result<Pose, InovorsError> {
         self.get(GetTarget::Transform).await
     }
     /// get the current [`JointCoord`] of the robot
-    async fn get_current_joint(&mut self) -> Result<JointCoord, RobotError> {
+    async fn get_current_joint(&mut self) -> Result<JointCoord, InovorsError> {
         self.get(GetTarget::JointCoord).await
     }
     /// get data from data dict in robot runtime
-    async fn get_data<T: FromRobot>(&mut self, key: String) -> Result<T, RobotError> {
+    async fn get_data<T: FromRobot>(&mut self, key: String) -> Result<T, InovorsError> {
         self.get(GetTarget::Data { key }).await
     }
     /// get data from robot
-    async fn get<T: FromRobot>(&mut self, get_target: GetTarget) -> Result<T, RobotError> {
+    async fn get<T: FromRobot>(&mut self, get_target: GetTarget) -> Result<T, InovorsError> {
         self.instruction_return(&Instruction::Get(get_target)).await
     }
 
@@ -230,50 +237,50 @@ pub trait IvaRobot {
         io_target: IOTarget,
         port: u16,
         state: bool,
-    ) -> Result<&mut Self, RobotError> {
+    ) -> Result<&mut Self, InovorsError> {
         self.instruction_assert_ok(&Instruction::io_set(io_target, port, state))
             .await
     }
     /// get the digital io state of the robot
-    async fn io_get(&mut self, io_target: IOTarget, port: u16) -> Result<bool, RobotError> {
+    async fn io_get(&mut self, io_target: IOTarget, port: u16) -> Result<bool, InovorsError> {
         self.instruction_return(&Instruction::io_get(io_target, port))
             .await
     }
     /// set the beckhoff io
-    async fn beckhoff_set(&mut self, port: u16, state: bool) -> Result<&mut Self, RobotError> {
+    async fn beckhoff_set(&mut self, port: u16, state: bool) -> Result<&mut Self, InovorsError> {
         self.io_set(IOTarget::Beckhoff, port, state).await
     }
     /// set the wrist io
-    async fn wrist_set(&mut self, port: u16, state: bool) -> Result<&mut Self, RobotError> {
+    async fn wrist_set(&mut self, port: u16, state: bool) -> Result<&mut Self, InovorsError> {
         self.io_set(IOTarget::Wrist, port, state).await
     }
     /// get the beckhoff io
-    async fn beckhoff_get(&mut self, port: u16) -> Result<bool, RobotError> {
+    async fn beckhoff_get(&mut self, port: u16) -> Result<bool, InovorsError> {
         self.io_get(IOTarget::Beckhoff, port).await
     }
     /// get the wrist io
-    async fn wrist_get(&mut self, port: u16) -> Result<bool, RobotError> {
+    async fn wrist_get(&mut self, port: u16) -> Result<bool, InovorsError> {
         self.io_get(IOTarget::Wrist, port).await
     }
 
     /// activate the robot gripper
-    async fn gripper_activate(&mut self) -> Result<&mut Self, RobotError> {
+    async fn gripper_activate(&mut self) -> Result<&mut Self, InovorsError> {
         self.instruction_assert_ok(&Instruction::Gripper(GripperCommand::Activate))
             .await
     }
     /// set the robot gripper to a predefined label
-    async fn gripper_set(&mut self, label: String) -> Result<&mut Self, RobotError> {
+    async fn gripper_set(&mut self, label: String) -> Result<&mut Self, InovorsError> {
         self.instruction_assert_ok(&Instruction::gripper(GripperCommand::Set { label }))
             .await
     }
     /// get the robot gripper width
-    async fn gripper_get(&mut self) -> Result<f64, RobotError> {
+    async fn gripper_get(&mut self) -> Result<f64, InovorsError> {
         self.instruction_return(&Instruction::gripper(GripperCommand::Get))
             .await
     }
 
     /// instruct the robot to perform a custom command and get the return resposne
-    async fn custom(&mut self, custom_command: CustomCommand) -> Result<String, RobotError> {
+    async fn custom(&mut self, custom_command: CustomCommand) -> Result<String, InovorsError> {
         self.instruction(&Instruction::custom(custom_command)).await
     }
 }

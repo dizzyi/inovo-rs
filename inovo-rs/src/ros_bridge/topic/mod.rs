@@ -27,6 +27,15 @@ pub trait Topic {
     async fn advertise(client: &ClientHandle) -> Result<Publisher<Self::Message>> {
         client.advertise(Self::NAME).await
     }
+
+    async fn until<P>(client: &ClientHandle, predicate: P) -> Result<()>
+    where
+        P: Fn(Self::Message) -> bool + Sync + Send,
+    {
+        let sub = Self::subscribe(client).await?;
+        while !predicate(sub.next().await) {}
+        Ok(())
+    }
 }
 
 #[inovo_topic("/rosout", rosgraph_msgs::Log)]

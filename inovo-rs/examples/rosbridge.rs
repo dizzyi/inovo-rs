@@ -42,7 +42,14 @@ async fn rosbridge() -> anyhow::Result<()> {
         }
     }
 
+    // until predicate
+    topic::sequence::RuntimeState::until(&client, |rt_s| {
+        rt_s.state == commander_msgs::RuntimeStatus::Idle
+    })
+    .await?;
+
     // Services
+    //
     // using client's short hand
     let res = client.arm_enable().await?;
     assert!(res.success, "arm enable failed due to : {}", res.message);
@@ -63,7 +70,7 @@ async fn rosbridge() -> anyhow::Result<()> {
         res.message
     );
 
-    // direct call
+    // direct call (less lsp support)
     let res = service::robot::Disable::call(&client, std_srvs::Trigger).await?;
     assert!(res.success, "arm disable failed due to : {}", res.message);
     // or

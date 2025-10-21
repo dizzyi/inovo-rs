@@ -24,7 +24,7 @@ inovo-rs = { path = "./inovo-rs" }
 
 dotenvy = { version = "0.15.7" }
 
-tracing-subscriber = { version = "0.3.20" }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 anyhow = { version = "1.0.100" }
 
 netdev = { version = "0.38.2" }

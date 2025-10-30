@@ -8,7 +8,7 @@ pub struct Clock {
     pub clock: std_msgs::DurationData,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize_repr, Deserialize_repr)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize_repr, Deserialize_repr, PartialOrd)]
 #[repr(u8)]
 pub enum LogLevel {
     #[default]

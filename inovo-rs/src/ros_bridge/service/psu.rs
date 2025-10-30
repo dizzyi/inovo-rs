@@ -14,7 +14,7 @@ pub struct EStopReset;
 #[inovo_service("/psu/reset_fault", std_srvs::Trigger)]
 pub struct ResetFault;
 
-#[inovo_service("/psu/safe_stop_reset", std_srvs::Trigger)]
+#[inovo_service("/psu/safe_stop/reset", std_srvs::Trigger)]
 pub struct SafeStopReset;
 
 #[inovo_service("/psu/safe_stop_trip", std_srvs::Trigger)]

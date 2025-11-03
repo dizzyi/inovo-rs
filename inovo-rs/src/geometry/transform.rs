@@ -392,6 +392,9 @@ impl Point {
         self
     }
 
+    pub fn array(&self) -> [f64; 3] {
+        [self.x, self.y, self.z]
+    }
     pub fn lenght(&self) -> f64 {
         self.into_vector().norm()
     }
@@ -522,6 +525,9 @@ impl Quaternion {
         Self::from_rx(deg) * self
     }
 
+    pub fn euler(&self) -> [f64; 3] {
+        self.into_unit_quaternion().euler_angles().into()
+    }
     pub fn angle(&self) -> f64 {
         self.into_unit_quaternion().angle()
     }

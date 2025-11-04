@@ -97,9 +97,7 @@ impl Pose {
     }
     /// set the euler of the Pose
     pub fn set_euler(mut self, euler_degree: [f64; 3]) -> Self {
-        self.orientation =
-            UnitQuaternion::from_euler_angles(euler_degree[0], euler_degree[1], euler_degree[2])
-                .into();
+        self.orientation = Quaternion::from_euler(euler_degree);
         self
     }
     /// set the x component of the Pose

@@ -44,23 +44,30 @@ pub async fn start_seq(
         procedure_name: procedure_name.clone(),
         ..Default::default()
     };
-    let response1 = service::sequence::Start::call(&client, req).await?;
-    if response1.success {
-        return Ok(());
-    }
+    let e1 = match service::sequence::Start::call(&client, req).await {
+        Ok(res) => {
+            if res.success {
+                return Ok(());
+            }
+            res.message
+        }
+        Err(e) => format!("{}", e),
+    };
 
     let req = package::commander_msgs::RunSequenceRequest {
         procedure_name: procedure_name,
     };
-    let response2 = service::sequence::StartRequest::call(&client, req).await?;
-    if response2.success {
-        return Ok(());
-    }
+    let e2 = match service::sequence::StartRequest::call(&client, req).await {
+        Ok(res) => {
+            if res.success {
+                return Ok(());
+            }
+            res.message
+        }
+        Err(e) => format!("{}", e),
+    };
 
-    let msg = format!(
-        "start error msg: {}, start-request error msg: {}",
-        response1.message, response2.message
-    );
+    let msg = format!("start error msg: {}, start-request error msg: {}", e1, e2);
 
     Err(InovorsError::PSUError(msg))
 }

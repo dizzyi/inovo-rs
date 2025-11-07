@@ -9,8 +9,8 @@ use crate::util::InovorsError;
 
 use super::{CommandSequence, FromRobot, MotionParam};
 
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
-use tracing::{debug, info};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
+use tracing::{debug, info, trace};
 
 pub struct Robot {
     buf_writer: tokio::io::BufWriter<tokio::net::tcp::OwnedWriteHalf>,
@@ -46,7 +46,7 @@ impl Robot {
     }
 
     pub async fn write(&mut self, msg: impl Into<String>) -> std::io::Result<()> {
-        let msg = format!("{}\r\n", msg.into());
+        let msg = format!("{}\n", msg.into());
         debug!(">>> {}", msg.trim());
         self.buf_writer.write(msg.as_bytes()).await?;
         self.buf_writer.flush().await?;
@@ -54,13 +54,28 @@ impl Robot {
     }
     pub async fn read(&mut self) -> std::io::Result<String> {
         self.buffer.clear();
-        let size = self.buf_reader.read_line(&mut self.buffer).await?;
-        if size == 0 {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::UnexpectedEof,
-                "0 input bytes, disconnected",
-            ));
+        debug!("reading line");
+        loop {
+            let b = self.buf_reader.read_u8().await?;
+            trace!("< {:02x} : {} : {}", b, b as char, self.buffer);
+            if b == 0 {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::UnexpectedEof,
+                    "detected, disconnected",
+                ));
+            }
+            self.buffer.push(b as char);
+            if self.buffer.ends_with("\r\n") {
+                break;
+            }
         }
+        // let size = self.buf_reader.read_line(&mut self.buffer).await?;
+        // if self.buffer == 0 {
+        //     return Err(std::io::Error::new(
+        //         std::io::ErrorKind::UnexpectedEof,
+        //         "0 input bytes, disconnected",
+        //     ));
+        // }
         let msg = self.buffer.clone().trim().to_string();
         debug!("<<< {}", msg);
         Ok(msg)
@@ -73,6 +88,8 @@ impl Robot {
 
         let bot = listener.accept_robot().await?;
 
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
         Ok(bot)
     }
 }
@@ -80,7 +97,7 @@ impl Robot {
 #[async_trait::async_trait]
 impl IvaRobot for Robot {
     async fn instruction(&mut self, inst: &Instruction) -> Result<String, InovorsError> {
-        let req = inst.to_iva_request()?.to_string_pretty();
+        let req = inst.to_iva_request()?.to_string();
         self.write(req).await?;
         let res = self.read().await?;
         info!("{:?}", res);
@@ -105,13 +122,14 @@ pub trait IvaRobot {
         inst: &Instruction,
     ) -> Result<&mut Self, InovorsError> {
         let res = self.instruction(inst).await?;
-        match res.as_str() {
-            "OK" => Ok(self),
-            _ => Err(InovorsError::IvaError {
+        if res.contains("OK") {
+            Ok(self)
+        } else {
+            Err(InovorsError::IvaError {
                 req: inst.clone(),
                 res,
                 reason: "response assert `OK` failed".to_owned(),
-            }),
+            })
         }
     }
 

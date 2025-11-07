@@ -22,7 +22,7 @@ pub struct MotionParam {
 
 impl MotionParam {
     pub const MIN_PRECENT: f64 = 1.0;
-    pub const MAX_PRECENT: f64 = 100.0;
+    pub const MAX_PRECENT: f64 = 99.0;
     pub const MIN_LENGHT: f64 = 1.0;
     pub const MAX_LENGHT: f64 = 1000.0;
     pub const MIN_ANGLE: f64 = 1.0;

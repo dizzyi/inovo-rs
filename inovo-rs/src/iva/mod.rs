@@ -471,6 +471,15 @@ impl IvaRequest {
             .collect::<serde_json::Value>();
         serde_json::to_string_pretty(&dict).unwrap()
     }
+
+    pub fn to_string(&self) -> String {
+        let dict = self
+            .0
+            .iter()
+            .map(|(k, v)| (k, v.to_value()))
+            .collect::<serde_json::Value>();
+        serde_json::to_string(&dict).unwrap()
+    }
 }
 
 #[derive(Debug, Clone, thiserror::Error)]

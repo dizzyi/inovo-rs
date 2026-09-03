@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::iva::MakeIvaRequest;
 
 /// Data structure representing robot's motion parameter
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct MotionParam {
     #[serde(default)]
@@ -18,6 +18,19 @@ pub struct MotionParam {
     tcp_speed_linear: f64,
     #[serde(default)]
     tcp_speed_angular: f64,
+}
+
+impl Default for MotionParam {
+    fn default() -> Self {
+        Self {
+            speed: 0.5,
+            accel: 0.5,
+            blend_linear: Self::MIN_LENGHT,
+            blend_angular: Self::MIN_ANGLE,
+            tcp_speed_linear: Self::MIN_LENGHT,
+            tcp_speed_angular: Self::MIN_ANGLE,
+        }
+    }
 }
 
 impl MotionParam {

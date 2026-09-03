@@ -61,6 +61,19 @@ impl Pose {
             euler_degree[2],
         )
     }
+    ///
+    pub fn to_array_mm_deg(&self) -> [f64; 6] {
+        let p = self.position;
+        let o = self.orientation.euler();
+        [
+            p.x * 1000.0,
+            p.y * 1000.0,
+            p.z * 1000.0,
+            o[0].to_degrees(),
+            o[1].to_degrees(),
+            o[2].to_degrees(),
+        ]
+    }
     /// create a new Pose from x component
     pub fn from_x(mm: f64) -> Self {
         Self::identity().set_x(mm)

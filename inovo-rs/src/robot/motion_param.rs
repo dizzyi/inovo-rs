@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::iva::MakeIvaRequest;
 
 /// Data structure representing robot's motion parameter
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub struct MotionParam {
     #[serde(default)]
